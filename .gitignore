@@ -1,0 +1,85 @@
+# ============ دیپندنسی‌ها ============
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ============ فایل‌های بیلد ============
+dist/
+build/
+*.tsbuildinfo
+.next/
+out/
+.nuxt/
+.cache/
+
+# ============ فایل‌های لاگ ============
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pm2-*.log
+
+# ============ محیط و تنظیمات ============
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+*.env
+
+# ============ داده‌های موقت (در production از Redis استفاده کنید) ============
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ============ فایل‌های سیستمی ============
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============ IDEها ============
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ============ پوشه‌های موقت ============
+tmp/
+temp/
+*.tmp
+
+# ============ گزارش‌ها و پوشه‌های دیباگ ============
+coverage/
+.nyc_output/
+*.lcov
+
+# ============ فایل‌های PM2 ============
+.pm2/
+pm2.json
+ecosystem.config.js
+
+# ============ TypeScript ============
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ============ امنیت ============
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+keys/
+
+# ============ دیگر فایل‌ها ============
+*.tgz
+*.gz
+*.7z
+*.rar
+*.zip
