@@ -3,102 +3,78 @@ import { Socket, Server as SocketServer } from "socket.io";
 import { roomStore } from "../../../store/roomStore.js";
 import { gameStateManager } from "../../../game/GameStateManager.js";
 import { sendRoomUpdate } from "./update.js";
+import type { Player } from "../../types.js";
 
-// بررسی آمادگی برای شروع بازی
-function isReadyToStart(room: any): boolean {
-  const players = Array.from(room.players.values());
-
-  // شرط: هر تیم حداقل یک Spymaster و یک Guesser داشته باشد
-  const redSpymaster = players.find(
-    (p) => p.team === "red" && p.role === "spymaster",
-  );
-  const redGuesser = players.find(
-    (p) => p.team === "red" && p.role === "guesser",
-  );
-  const blueSpymaster = players.find(
-    (p) => p.team === "blue" && p.role === "spymaster",
-  );
-  const blueGuesser = players.find(
-    (p) => p.team === "blue" && p.role === "guesser",
-  );
-
-  const isReady = !!(
-    redSpymaster &&
-    redGuesser &&
-    blueSpymaster &&
-    blueGuesser
-  );
-
-  if (!isReady) {
-    console.log(`⚠️ Game not ready for room ${room.code}:`, {
-      redSpymaster: !!redSpymaster,
-      redGuesser: !!redGuesser,
-      blueSpymaster: !!blueSpymaster,
-      blueGuesser: !!blueGuesser,
-    });
-  }
-
-  return isReady;
-}
-
-// شروع خودکار بازی (توسط سازنده یا پس از آماده شدن همه)
 export function startGameAutomatically(io: SocketServer, code: string): void {
   const room = roomStore.get(code);
   if (!room || room.gameStatus !== "waiting") return;
 
-  if (!isReadyToStart(room)) {
-    io.to(code).emit(
-      "error",
-      "برای شروع بازی هر تیم باید حداقل یک Spymaster و یک Guesser داشته باشد",
-    );
-    return;
-  }
-
-  console.log(`🚀 Starting game in room: ${code}`);
+  console.log(`🚀 Starting game automatically in room: ${code}`);
   room.gameStatus = "active";
 
-  // ایجاد جلسه بازی
   const gameSession = gameStateManager.startGame(code);
 
-  // انتقال نقش‌ها از roomStore به gameStateManager
-  for (const player of room.players.values()) {
-    if (player.team && player.role) {
-      gameStateManager.assignRole(code, player.id, player.team, player.role);
-      console.log(
-        `📋 Transferred role: ${player.name} -> ${player.team} ${player.role}`,
-      );
-    }
-  }
-
-  sendRoomUpdate(io, code);
-
-  // ارسال وضعیت بازی به همه اعضای روم
-  io.to(code).emit("game-started", {
+  // 🔥 ارسال رویداد game-started به همه افراد در روم (از جمله Spectatorها)
+  const eventData = {
     words: gameSession.words,
     turn: gameSession.turnState.turn,
     remainingGuesses: gameSession.turnState.remainingGuesses,
-  });
+  };
+
+  console.log(`📡 Emitting 'game-started' to room ${code}:`, eventData);
+  io.to(code).emit("game-started", eventData);
+
+  sendRoomUpdate(io, code);
 
   console.log(
     `✅ Game started in room ${code}, turn: ${gameSession.turnState.turn}`,
   );
 }
 
-// شروع بازی توسط سازنده (دستی)
-export function handleStartGame(
+export function handleJoinGame(
   io: SocketServer,
   socket: Socket,
   data: {
     code: string;
     userId: string;
+    team: "red" | "blue";
+    role: "spymaster" | "guesser";
   },
 ): void {
-  const { code, userId } = data;
+  const { code, userId, team, role } = data;
   const room = roomStore.get(code);
 
-  if (room && room.creatorId === userId && room.gameStatus === "waiting") {
-    startGameAutomatically(io, code);
-  } else if (room && room.creatorId !== userId) {
-    socket.emit("error", "فقط سازنده روم می‌تواند بازی را شروع کند");
+  if (!room || room.gameStatus !== "active") {
+    socket.emit("error", { error: "بازی فعال نیست" });
+    return;
   }
+
+  const spectator = room.spectators.get(userId);
+  if (!spectator) {
+    socket.emit("error", { error: "شما در لیست تماشاگران نیستید" });
+    return;
+  }
+
+  room.spectators.delete(userId);
+
+  const newPlayer: Player = {
+    id: spectator.id,
+    name: spectator.name,
+    team,
+    role,
+    socketId: spectator.socketId,
+    joinedAt: spectator.joinedAt,
+  };
+
+  room.players.set(userId, newPlayer);
+  gameStateManager.assignRole(code, userId, team, role);
+
+  console.log(`🎮 ${spectator.name} joined the game as ${team}/${role}`);
+
+  const game = gameStateManager.getGame(code);
+  if (game) {
+    io.to(code).emit("game-state-update", game.turnState);
+  }
+
+  sendRoomUpdate(io, code);
 }

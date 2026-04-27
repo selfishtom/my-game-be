@@ -1,7 +1,10 @@
 export { handleJoinRoom } from "./join.js";
-export { handlePlayerReady } from "./ready.js";
-export { handleStartGame, startGameAutomatically } from "./start.js";
-export { handleSwitchTeam, handleSwitchRole } from "./switch.js";
+export { handleJoinGame, startGameAutomatically } from "./start.js";
+export {
+  handleSwitchTeam,
+  handleSwitchRole,
+  handleTransferOwnership,
+} from "./switch.js";
 export {
   handleKickUser,
   handleLeaveRoom,

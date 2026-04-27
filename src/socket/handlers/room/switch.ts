@@ -93,7 +93,6 @@ export function handleSelectRole(
   }
 }
 
-// تغییر تیم (برای بازیکنانی که قبلاً تیم انتخاب کرده‌اند)
 export function handleSwitchTeam(
   io: SocketServer,
   socket: Socket,
@@ -106,7 +105,7 @@ export function handleSwitchTeam(
   const { code, userId, newTeam } = data;
   const room = roomStore.get(code);
 
-  if (room && room.players.has(userId) && room.gameStatus === "waiting") {
+  if (room && room.players.has(userId)) {
     const player = room.players.get(userId)!;
     const oldTeam = player.team;
 
@@ -114,10 +113,19 @@ export function handleSwitchTeam(
     player.team = newTeam;
     player.role = null;
 
+    // به‌روزرسانی در gameStateManager
+    gameStateManager.assignRole(code, userId, newTeam, "guesser"); // به طور پیش‌فرض Guesser
+
     console.log(
-      `🔄 ${player.name} switched from ${oldTeam || "spectator"} to ${newTeam} team (role reset to spectator)`,
+      `🔄 ${player.name} switched from ${oldTeam} to ${newTeam} team`,
     );
     sendRoomUpdate(io, code);
+
+    // به‌روزرسانی وضعیت بازی
+    const game = gameStateManager.getGame(code);
+    if (game) {
+      io.to(code).emit("game-state-update", game.turnState);
+    }
   }
 }
 
@@ -167,4 +175,42 @@ export function handleSwitchRole(
 
     sendRoomUpdate(io, code);
   }
+}
+
+// انتقال مدیریت روم به شخص دیگر (فقط توسط سازنده فعلی)
+export function handleTransferOwnership(
+  io: SocketServer,
+  socket: Socket,
+  data: {
+    code: string;
+    userId: string;
+    targetUserId: string;
+  },
+): void {
+  const { code, userId, targetUserId } = data;
+  const room = roomStore.get(code);
+
+  if (!room || room.creatorId !== userId) {
+    socket.emit("error", "فقط سازنده روم می‌تواند مدیریت را انتقال دهد");
+    return;
+  }
+
+  if (!room.players.has(targetUserId)) {
+    socket.emit("error", "کاربر مورد نظر در این روم وجود ندارد");
+    return;
+  }
+
+  const targetPlayer = room.players.get(targetUserId)!;
+  const oldCreator = room.players.get(userId)!;
+
+  room.creatorId = targetUserId;
+
+  console.log(
+    `👑 Ownership transferred from ${oldCreator.name} to ${targetPlayer.name}`,
+  );
+  sendRoomUpdate(io, code);
+  io.to(code).emit("ownership-transferred", {
+    newCreatorId: targetUserId,
+    newCreatorName: targetPlayer.name,
+  });
 }

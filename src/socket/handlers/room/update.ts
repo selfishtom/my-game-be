@@ -8,7 +8,6 @@ export function sendRoomUpdate(io: SocketServer, code: string): void {
   const playersList = Array.from(room.players.values()).map((p) => ({
     id: p.id,
     name: p.name,
-    isReady: p.isReady,
     team: p.team,
     role: p.role,
   }));

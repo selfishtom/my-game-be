@@ -5,13 +5,21 @@ export interface Player {
   team: "red" | "blue" | null;
   role: "spymaster" | "guesser" | null;
   socketId: string;
-  isReady: boolean;
+  joinedAt: number;
+}
+
+export interface Spectator {
+  id: string;
+  name: string;
+  socketId: string;
+  joinedAt: number;
 }
 
 export interface Room {
   code: string;
   creatorId: string;
   players: Map<string, Player>;
+  spectators: Map<string, Spectator>;
   gameStatus: "waiting" | "active" | "finished";
 }
 

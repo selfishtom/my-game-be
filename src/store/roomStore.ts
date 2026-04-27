@@ -110,26 +110,6 @@ export const roomStore = {
   },
 
   /**
-   * به‌روزرسانی وضعیت آمادگی بازیکن
-   * @param code - کد روم
-   * @param userId - شناسه کاربر
-   * @param isReady - وضعیت آمادگی
-   * @returns موفقیت آمیز بودن عملیات
-   */
-  setPlayerReady(code: string, userId: string, isReady: boolean): boolean {
-    const room = rooms.get(code);
-    if (!room) return false;
-
-    const player = room.players.get(userId);
-    if (player) {
-      player.isReady = isReady;
-      console.log(`✅ Player ${player.name} ready status: ${isReady}`);
-      return true;
-    }
-    return false;
-  },
-
-  /**
    * به‌روزرسانی نقش و تیم بازیکن
    * @param code - کد روم
    * @param userId - شناسه کاربر
@@ -232,7 +212,7 @@ if (process.env.NODE_ENV === "development") {
       console.log(`📊 Current rooms: ${rooms.size}`);
       for (const [code, room] of rooms.entries()) {
         console.log(
-          `   - Room ${code}: ${room.players.size} players, status: ${room.gameStatus}`,
+          `   - Room ${code}: ${room.players.size} players, ${room.spectators.size}, status: ${room.gameStatus}`,
         );
       }
     }

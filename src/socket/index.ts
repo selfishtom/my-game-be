@@ -3,9 +3,9 @@ import { Server as SocketServer } from "socket.io";
 import { handleConnection } from "./handlers/connection.js";
 import {
   handleJoinRoom,
-  handlePlayerReady,
+  handleTransferOwnership,
   handleLeaveRoom,
-  handleStartGame,
+  handleJoinGame,
   handleKickUser,
   handleRestartGame,
   handleEndGame,
@@ -31,10 +31,9 @@ export function setupSocketHandlers(io: SocketServer): void {
 
     // ============ هندلرهای روم ============
     socket.on("join-room", (data) => handleJoinRoom(io, socket, data));
-    socket.on("player-ready", (data) => handlePlayerReady(io, socket, data));
     socket.on("leave-room", (data) => handleLeaveRoom(io, socket, data));
-    socket.on("start-game", (data) => handleStartGame(io, socket, data));
     socket.on("kick-user", (data) => handleKickUser(io, socket, data));
+    socket.on("join-game", (data) => handleJoinGame(io, socket, data));
     socket.on("restart-game", (data) => handleRestartGame(io, socket, data));
     socket.on("end-game", (data) => handleEndGame(io, socket, data));
 
@@ -43,6 +42,9 @@ export function setupSocketHandlers(io: SocketServer): void {
     socket.on("select-role", (data) => handleSelectRole(io, socket, data));
     socket.on("switch-team", (data) => handleSwitchTeam(io, socket, data));
     socket.on("switch-role", (data) => handleSwitchRole(io, socket, data));
+    socket.on("transfer-ownership", (data) =>
+      handleTransferOwnership(io, socket, data),
+    );
 
     // ============ هندلرهای بازی ============
     socket.on("give-clue", (data, callback) =>
