@@ -4,8 +4,6 @@ export { handleConnection } from "./connection.js";
 // Room handlers
 export {
   handleJoinRoom,
-  handlePlayerReady,
-  handleStartGame,
   handleSwitchTeam,
   handleSwitchRole,
   handleKickUser,

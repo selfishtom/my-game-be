@@ -40,36 +40,40 @@ export function handleStartVote(
   }
 }
 
-export function handleCastVote(
-  io: SocketServer,
-  socket: Socket,
-  data: {
-    code: string;
-    userId: string;
-    wordIndex: number;
-  },
-): void {
-  const { code, userId, wordIndex } = data;
-  const result = gameStateManager.castVote(code, userId, wordIndex);
+// export function handleCastVote(
+//   io: SocketServer,
+//   socket: Socket,
+//   data: {
+//     code: string;
+//     userId: string;
+//     wordIndex: number;
+//   },
+// ): void {
+//   const { code, userId, wordIndex } = data;
+//   const result = gameStateManager.castVote(code, userId, wordIndex);
 
-  if (result.success) {
-    io.to(code).emit("vote-cast", { userId, wordIndex });
+//   if (result.success) {
+//     io.to(code).emit("vote-cast", { userId, wordIndex });
 
-    if (result.revealed) {
-      io.to(code).emit("vote-result", {
-        selectedWord: wordIndex,
-        color: result.revealed.color,
-        isGameOver: result.revealed.isGameOver,
-        newTurn: result.newTurn,
-        winner: result.winner,
-      });
-    } else {
-      io.to(code).emit("vote-count", { votes: result.voteCount });
-    }
-  } else {
-    socket.emit("vote-error", { error: result.error });
-  }
-}
+//     if (result.revealed) {
+//       io.to(code).emit("vote-result", {
+//         selectedWord: wordIndex,
+//         color: result.revealed.color,
+//         isGameOver: result.revealed.isGameOver,
+//         newTurn: result.newTurn,
+//         winner: result.winner,
+//       });
+//     } else {
+//       if (result.voteCount) {
+//         io.to(code).emit("vote-count", {
+//           votes: Array.from(result.voteCount.entries()),
+//         });
+//       }
+//     }
+//   } else {
+//     socket.emit("vote-error", { error: result.error });
+//   }
+// }
 
 export function handleGetVoteStatus(
   io: SocketServer,
