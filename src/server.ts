@@ -28,7 +28,7 @@ app.use(cors({
 
 app.use(express.json());
 
-app.post("/create-room", (req, res) => {
+app.post("/api/create-room", (req, res) => {
   // تولید کد 6 رقمی تصادفی
   const generateRoomCode = () => {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -55,7 +55,7 @@ app.get("/health", (req, res) => {
 });
 
 // Words API
-app.get("/words", (req, res) => {
+app.get("/api/words", (req, res) => {
   // TODO: return words from words.ts
   res.json({ message: "Words endpoint - to be implemented" });
 });
