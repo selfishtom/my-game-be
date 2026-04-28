@@ -272,7 +272,6 @@ export class GameStateManager {
         success: true,
         revealed: revealResult,
         winner: "red",
-        isGameOver: true,
       };
     }
 
@@ -283,7 +282,6 @@ export class GameStateManager {
         success: true,
         revealed: revealResult,
         winner: "blue",
-        isGameOver: true,
       };
     }
 
@@ -296,7 +294,6 @@ export class GameStateManager {
         success: true,
         revealed: revealResult,
         winner,
-        isGameOver: true,
       };
     }
 
