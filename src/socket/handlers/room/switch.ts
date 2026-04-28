@@ -46,7 +46,7 @@ export function handleSelectRole(
     code: string;
     userId: string;
     team: "red" | "blue";
-    role: "spymaster" | "guesser";
+    role: "spymaster" | "operative";
   },
 ): void {
   const { code, userId, team, role } = data;
@@ -80,7 +80,7 @@ export function handleSelectRole(
     // ذخیره نقش در player
     player.role = role;
     console.log(
-      `✅ ${player.name} became ${role === "spymaster" ? "🎭 Spymaster" : "🎯 Guesser"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
+      `✅ ${player.name} became ${role === "spymaster" ? "🎭 Spymaster" : "🎯 operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
     );
 
     // اگر بازی قبلاً شروع شده بود، در gameStateManager نیز ثبت کن
@@ -114,7 +114,7 @@ export function handleSwitchTeam(
     player.role = null;
 
     // به‌روزرسانی در gameStateManager
-    gameStateManager.assignRole(code, userId, newTeam, "guesser"); // به طور پیش‌فرض Guesser
+    gameStateManager.assignRole(code, userId, newTeam, "operative"); // به طور پیش‌فرض operative
 
     console.log(
       `🔄 ${player.name} switched from ${oldTeam} to ${newTeam} team`,
@@ -137,7 +137,7 @@ export function handleSwitchRole(
     code: string;
     userId: string;
     team: "red" | "blue";
-    role: "spymaster" | "guesser";
+    role: "spymaster" | "operative";
   },
 ): void {
   const { code, userId, team, role } = data;
@@ -170,7 +170,7 @@ export function handleSwitchRole(
     // تغییر نقش
     player.role = role;
     console.log(
-      `🔄 ${player.name} switched to ${role === "spymaster" ? "🎭 Spymaster" : "🎯 Guesser"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
+      `🔄 ${player.name} switched to ${role === "spymaster" ? "🎭 Spymaster" : "🎯 operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
     );
 
     sendRoomUpdate(io, code);

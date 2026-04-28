@@ -114,14 +114,14 @@ export const roomStore = {
    * @param code - کد روم
    * @param userId - شناسه کاربر
    * @param team - تیم (red/blue)
-   * @param role - نقش (spymaster/guesser)
+   * @param role - نقش (spymaster/operative)
    * @returns موفقیت آمیز بودن عملیات
    */
   setPlayerRole(
     code: string,
     userId: string,
     team: "red" | "blue" | null,
-    role: "spymaster" | "guesser" | null,
+    role: "spymaster" | "operative" | null,
   ): boolean {
     const room = rooms.get(code);
     if (!room) return false;

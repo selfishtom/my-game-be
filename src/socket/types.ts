@@ -3,7 +3,7 @@ export interface Player {
   id: string;
   name: string;
   team: "red" | "blue" | null;
-  role: "spymaster" | "guesser" | null;
+  role: "spymaster" | "operative" | null;
   socketId: string;
   joinedAt: number;
 }
@@ -35,12 +35,12 @@ export interface GameSession {
   turn: "red" | "blue";
   redTeam: {
     spymaster: string | null;
-    guessers: string[];
+    operatives: string[];
     remainingWords: number;
   };
   blueTeam: {
     spymaster: string | null;
-    guessers: string[];
+    operatives: string[];
     remainingWords: number;
   };
   currentClue?: {
@@ -82,7 +82,7 @@ export interface AssignRolePayload {
   code: string;
   userId: string;
   team: "red" | "blue";
-  role: "spymaster" | "guesser";
+  role: "spymaster" | "operative";
 }
 
 export interface VotePayload {

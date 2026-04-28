@@ -158,7 +158,7 @@ export function handleAssignRole(
     code: string;
     userId: string;
     team: "red" | "blue";
-    role: "spymaster" | "guesser";
+    role: "spymaster" | "operative";
   },
 ): void {
   const { code, userId, team, role } = data;

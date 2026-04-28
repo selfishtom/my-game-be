@@ -59,7 +59,7 @@ export class GameStateManager {
     roomCode: string,
     userId: string,
     team: "red" | "blue",
-    role: "spymaster" | "guesser",
+    role: "spymaster" | "operative",
   ): boolean {
     const game = this.games.get(roomCode);
     if (!game) {
@@ -77,21 +77,21 @@ export class GameStateManager {
       }
     } else {
       if (team === "red") {
-        if (!game.turnState.redTeam.guessers.includes(userId)) {
-          game.turnState.redTeam.guessers.push(userId);
+        if (!game.turnState.redTeam.operatives.includes(userId)) {
+          game.turnState.redTeam.operatives.push(userId);
         }
       } else {
-        if (!game.turnState.blueTeam.guessers.includes(userId)) {
-          game.turnState.blueTeam.guessers.push(userId);
+        if (!game.turnState.blueTeam.operatives.includes(userId)) {
+          game.turnState.blueTeam.operatives.push(userId);
         }
       }
     }
 
     console.log(
-      `✅ Role assigned. Red team: spymaster=${game.turnState.redTeam.spymaster}, guessers=${game.turnState.redTeam.guessers.length}`,
+      `✅ Role assigned. Red team: spymaster=${game.turnState.redTeam.spymaster}, operatives=${game.turnState.redTeam.operatives.length}`,
     );
     console.log(
-      `✅ Role assigned. Blue team: spymaster=${game.turnState.blueTeam.spymaster}, guessers=${game.turnState.blueTeam.guessers.length}`,
+      `✅ Role assigned. Blue team: spymaster=${game.turnState.blueTeam.spymaster}, operatives=${game.turnState.blueTeam.operatives.length}`,
     );
 
     return true;
@@ -176,15 +176,15 @@ export class GameStateManager {
     game.turnState.remainingGuesses = number + 1;
 
     // ایجاد جلسه رأی‌گیری
-    const guessers =
+    const operatives =
       currentTurn === "red"
-        ? game.turnState.redTeam.guessers
-        : game.turnState.blueTeam.guessers;
+        ? game.turnState.redTeam.operatives
+        : game.turnState.blueTeam.operatives;
 
     game.voteSession = createVoteSession(
       roomCode,
       currentTurn,
-      guessers,
+      operatives,
       Date.now(),
     );
 
@@ -215,13 +215,13 @@ export class GameStateManager {
     const currentTurn = voteSession.targetTeam;
 
     // بررسی اینکه کاربر جزو تیم حدس‌زننده هست
-    const isGuesser =
+    const isOperative =
       currentTurn === "red"
-        ? game.turnState.redTeam.guessers.includes(userId)
-        : game.turnState.blueTeam.guessers.includes(userId);
+        ? game.turnState.redTeam.operatives.includes(userId)
+        : game.turnState.blueTeam.operatives.includes(userId);
 
-    if (!isGuesser) {
-      return { success: false, error: "You are not a guesser for this team" };
+    if (!isOperative) {
+      return { success: false, error: "You are not a operative for this team" };
     }
 
     // ثبت رأی
@@ -313,14 +313,14 @@ export class GameStateManager {
         game.turnState.remainingGuesses = 0;
       } else {
         // هنوز حدس باقی مانده - دوباره رأی‌گیری
-        const guessers =
+        const operatives =
           currentTurn === "red"
-            ? game.turnState.redTeam.guessers
-            : game.turnState.blueTeam.guessers;
+            ? game.turnState.redTeam.operatives
+            : game.turnState.blueTeam.operatives;
         game.voteSession = createVoteSession(
           roomCode,
           currentTurn,
-          guessers,
+          operatives,
           Date.now(),
         );
       }
@@ -339,37 +339,6 @@ export class GameStateManager {
       winner: game.turnState.winner,
     };
   }
-
-  // تخصیص نقش به کاربر
-  // assignRole(
-  //   roomCode: string,
-  //   userId: string,
-  //   team: "red" | "blue",
-  //   role: "spymaster" | "guesser",
-  // ): boolean {
-  //   const game = this.games.get(roomCode);
-  //   if (!game) return false;
-
-  //   if (role === "spymaster") {
-  //     if (team === "red") {
-  //       game.turnState.redTeam.spymaster = userId;
-  //     } else {
-  //       game.turnState.blueTeam.spymaster = userId;
-  //     }
-  //   } else {
-  //     if (team === "red") {
-  //       if (!game.turnState.redTeam.guessers.includes(userId)) {
-  //         game.turnState.redTeam.guessers.push(userId);
-  //       }
-  //     } else {
-  //       if (!game.turnState.blueTeam.guessers.includes(userId)) {
-  //         game.turnState.blueTeam.guessers.push(userId);
-  //       }
-  //     }
-  //   }
-
-  //   return true;
-  // }
 }
 
 // یک instance واحد برای کل برنامه

@@ -21,7 +21,7 @@ export function getVoteThreshold(totalVoters: number): number {
 export function createVoteSession(
   roomCode: string,
   targetTeam: "red" | "blue",
-  guesserIds: string[],
+  operativeIds: string[],
   roundNumber: number,
 ): VoteSession {
   return {
@@ -30,7 +30,7 @@ export function createVoteSession(
     roundNumber,
     votes: new Map(),
     voters: new Set(),
-    totalVoters: guesserIds.length,
+    totalVoters: operativeIds.length,
     isActive: true,
     startTime: Date.now(),
   };

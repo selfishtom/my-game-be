@@ -7,7 +7,7 @@ import {
 
 export interface TeamState {
   spymaster: string | null;
-  guessers: string[];
+  operatives: string[];
   remainingWords: number;
 }
 
@@ -33,12 +33,12 @@ export function createInitialTurnState(words: GameWord[]): GameTurnState {
     turn: getStartingTeam(),
     redTeam: {
       spymaster: null,
-      guessers: [],
+      operatives: [],
       remainingWords: redRemaining,
     },
     blueTeam: {
       spymaster: null,
-      guessers: [],
+      operatives: [],
       remainingWords: blueRemaining,
     },
     remainingGuesses: 0,

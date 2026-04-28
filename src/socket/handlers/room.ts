@@ -149,9 +149,9 @@ export function startGameAutomatically(io: SocketServer, code: string): void {
     for (let i = 2; i < shuffledPlayers.length; i++) {
       const player = shuffledPlayers[i];
       const team = i % 2 === 0 ? "red" : "blue";
-      gameStateManager.assignRole(code, player.id, team, "guesser");
+      gameStateManager.assignRole(code, player.id, team, "operative");
       console.log(
-        `👤 ${player.name} -> ${team === "red" ? "🔴 Red Guesser" : "🔵 Blue Guesser"}`,
+        `👤 ${player.name} -> ${team === "red" ? "🔴 Red operative" : "🔵 Blue operative"}`,
       );
     }
 
@@ -165,11 +165,11 @@ export function startGameAutomatically(io: SocketServer, code: string): void {
         } else if (game.turnState.blueTeam.spymaster === player.id) {
           player.role = "spymaster";
           player.team = "blue";
-        } else if (game.turnState.redTeam.guessers.includes(player.id)) {
-          player.role = "guesser";
+        } else if (game.turnState.redTeam.operatives.includes(player.id)) {
+          player.role = "operative";
           player.team = "red";
-        } else if (game.turnState.blueTeam.guessers.includes(player.id)) {
-          player.role = "guesser";
+        } else if (game.turnState.blueTeam.operatives.includes(player.id)) {
+          player.role = "operative";
           player.team = "blue";
         }
       }
