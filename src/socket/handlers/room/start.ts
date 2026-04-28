@@ -5,6 +5,35 @@ import { gameStateManager } from "../../../game/GameStateManager.js";
 import { sendRoomUpdate } from "./update.js";
 import type { Player } from "../../types.js";
 
+export function sendCurrentGameState(
+  io: SocketServer,
+  code: string,
+  socketId: string,
+): void {
+  const gameSession = gameStateManager.getGame(code);
+  if (!gameSession) {
+    console.log(`⚠️ No game session found for room ${code}`);
+    return;
+  }
+
+  console.log(
+    `📡 Sending current game state to socket ${socketId} for room ${code}`,
+  );
+
+  const eventData = {
+    words: gameSession.words,
+    turn: gameSession.turnState.turn,
+    remainingGuesses: gameSession.turnState.remainingGuesses,
+    currentClue: gameSession.turnState.currentClue,
+    redTeam: gameSession.turnState.redTeam,
+    blueTeam: gameSession.turnState.blueTeam,
+    winner: gameSession.turnState.winner,
+  };
+
+  // ارسال فقط به سوکت مشخص شده
+  io.to(socketId).emit("game-started", eventData);
+}
+
 export function startGameAutomatically(io: SocketServer, code: string): void {
   const room = roomStore.get(code);
   if (!room || room.gameStatus !== "waiting") return;

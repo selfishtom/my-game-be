@@ -20,19 +20,30 @@ export function handleKickUser(io: SocketServer,socket: Socket,data:{code:string
 }
 
 // prettier-ignore
-export function handleLeaveRoom(io:SocketServer,socket:Socket,data:{code:string;userId:string;}):void 
-{
+export function handleLeaveRoom(io: SocketServer, socket: Socket,
+  data:{ code: string; userId: string;}): void {
   const { code, userId } = data;
   const room = roomStore.get(code);
 
-  if (room && room.players.has(userId)) {
+  if (room && room.players.has(userId) || room?.spectators.has(userId)) {
     const player = room.players.get(userId)!;
-    room.players.delete(userId);
-    console.log(`👋 Player left: ${player.name} from room ${code}`);
+    const spectator = room.spectators.get(userId);
+    const userName = player?.name || spectator?.name || userId;
+
+    // حذف از players یا spectators
+    if (player) {
+      room.players.delete(userId);
+      console.log(`👋 Player left: ${userName} from room ${code}`);
+    }
+    if (spectator) {
+      room.spectators.delete(userId);
+      console.log(`👁️ Spectator left: ${userName} from room ${code}`);
+    }
 
     socket.leave(code);
 
-    if (room.players.size === 0) {
+    // 🔥 بررسی: اگر روم کاملاً خالی شد، آن را حذف کن
+    if (room.players.size === 0 && room.spectators.size === 0) {
       roomStore.delete(code);
       gameStateManager.removeGame(code);
       console.log(`🗑️ Room deleted (empty): ${code}`);
@@ -43,9 +54,8 @@ export function handleLeaveRoom(io:SocketServer,socket:Socket,data:{code:string;
         {
           return (current.joinedAt || 0) < (oldest.joinedAt || 0) ? current : oldest;
         }, playersList[0]);
-        const newCreator = Array.from(room.players.values())[0];
 
-        room.creatorId = newCreator.id;
+        room.creatorId = oldestPlayer.id;
         console.log(`👑 New creator assigned (by join order): ${oldestPlayer.name}`);
       }
       sendRoomUpdate(io, code);

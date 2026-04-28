@@ -2,7 +2,7 @@
 import { Socket, Server as SocketServer } from "socket.io";
 import { roomStore } from "../../../store/roomStore.js";
 import { sendRoomUpdate } from "./update.js";
-import { startGameAutomatically } from "./start.js";
+import { startGameAutomatically, sendCurrentGameState } from "./start.js";
 
 export function handleJoinRoom(
   io: SocketServer,
@@ -47,9 +47,25 @@ export function handleJoinRoom(
     console.log(
       `👁️ Spectator added: ${playerName}. Total spectators: ${room.spectators.size}`,
     );
+  } else {
+    // به‌روزرسانی socketId برای reconnect
+    const existingSpectator = room.spectators.get(userId);
+    if (existingSpectator) {
+      existingSpectator.socketId = socket.id;
+      console.log(`🔄 Spectator reconnected: ${playerName}`);
+    }
+    const existingPlayer = room.players.get(userId);
+    if (existingPlayer) {
+      existingPlayer.socketId = socket.id;
+      console.log(`🔄 Player reconnected: ${playerName}`);
+    }
   }
 
   sendRoomUpdate(io, code);
+
+  if (room.gameStatus === "active") {
+    sendCurrentGameState(io, code, socket.id);
+  }
 
   // 🔥 شروع بازی فقط برای روم جدید (و نه برای reconnect)
   if (isNewRoom) {

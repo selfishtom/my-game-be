@@ -1,5 +1,5 @@
 // backend/src/store/roomStore.ts
-import { Room, Player } from "../socket/types.js";
+import { Room, Player, Spectator } from "../socket/types.js";
 
 // ذخیره‌سازی روم‌ها در حافظه (در production از Redis استفاده کنید)
 const rooms = new Map<string, Room>();
@@ -208,11 +208,12 @@ export const roomStore = {
 // برای دیباگ - نمایش وضعیت روم‌ها هر 30 ثانیه
 if (process.env.NODE_ENV === "development") {
   setInterval(() => {
+    const rooms = roomStore.getAll();
     if (rooms.size > 0) {
       console.log(`📊 Current rooms: ${rooms.size}`);
       for (const [code, room] of rooms.entries()) {
         console.log(
-          `   - Room ${code}: ${room.players.size} players, ${room.spectators.size}, status: ${room.gameStatus}`,
+          `   - Room ${code}: ${room.players.size} players, ${room.spectators.size} spectators, status: ${room.gameStatus}`,
         );
       }
     }

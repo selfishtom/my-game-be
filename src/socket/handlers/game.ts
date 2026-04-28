@@ -18,12 +18,18 @@ export function handleGiveClue(
   const room = roomStore.get(code);
 
   if (!room || room.gameStatus !== "active") {
-    callback({ success: false, error: "Game is not active" });
+    if (callback) callback({ success: false, error: "Game is not active" });
+    else socket.emit("error", { error: "Game is not acitve" });
     return;
   }
 
   const result = gameStateManager.giveClue(code, userId, clue, number);
-  callback({ success: result.success, error: result.error });
+
+  if (callback) {
+    callback({ success: result.success, error: result.error });
+  } else if (!result.success) {
+    socket.emit("error", { error: result.error });
+  }
 
   if (result.success) {
     // ارسال سرنخ به همه اعضای تیم (نه به تیم مقابل)
@@ -59,12 +65,18 @@ export function handleMakeGuess(
   const room = roomStore.get(code);
 
   if (!room || room.gameStatus !== "active") {
-    callback({ success: false, error: "Game is not active" });
+    if (callback) callback({ success: false, error: "Game is not active" });
+    else socket.emit("error", { error: "Game is not active" });
     return;
   }
 
   const result = gameStateManager.castVote(code, userId, wordIndex);
-  callback(result);
+
+  if (callback) {
+    callback(result);
+  } else if (!result.success) {
+    socket.emit("error", { error: result.error });
+  }
 
   if (result.success && result.revealed) {
     // ارسال نتیجه به همه اعضای روم
@@ -179,7 +191,6 @@ function sendRoomUpdate(io: SocketServer, code: string): void {
   const playersList = Array.from(room.players.values()).map((p) => ({
     id: p.id,
     name: p.name,
-    isReady: p.isReady,
     team: p.team,
     role: p.role,
   }));

@@ -1,3 +1,4 @@
+// backend/src/socket/handlers/room/update.ts
 import { Server as SocketServer } from "socket.io";
 import { roomStore } from "../../../store/roomStore.js";
 
@@ -10,13 +11,26 @@ export function sendRoomUpdate(io: SocketServer, code: string): void {
     name: p.name,
     team: p.team,
     role: p.role,
+    joinedAt: p.joinedAt,
   }));
+
+  const spectatorsList = Array.from(room.spectators.values()).map((s) => ({
+    id: s.id,
+    name: s.name,
+    joinedAt: s.joinedAt,
+  }));
+
+  console.log(
+    `📡 Sending room update for ${code}: ${playersList.length} players, ${spectatorsList.length} spectators`,
+  );
 
   io.to(code).emit("room-update", {
     code: room.code,
     creatorId: room.creatorId,
     players: playersList,
+    spectators: spectatorsList,
     playerCount: playersList.length,
+    spectatorCount: spectatorsList.length,
     gameStatus: room.gameStatus,
   });
 }

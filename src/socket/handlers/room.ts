@@ -16,7 +16,7 @@ export function handleJoinRoom(
   const { code, userId, playerName } = data;
   console.log(`📥 Join room request: ${code} from ${playerName} (${userId})`);
 
-  let room = roomStore.get(code);
+  let room: Room = roomStore.get(code)!;
 
   // اگر روم وجود نداشت، بساز
   if (!room) {
@@ -24,6 +24,7 @@ export function handleJoinRoom(
       code,
       creatorId: userId,
       players: new Map(),
+      spectators: new Map(),
       gameStatus: "waiting",
     };
     roomStore.set(code, room);
@@ -38,7 +39,7 @@ export function handleJoinRoom(
       team: null,
       role: null,
       socketId: socket.id,
-      isReady: false,
+      joinedAt: Date.now(),
     };
     room.players.set(userId, newPlayer);
     console.log(`👤 Player added: ${playerName}. Total: ${room.players.size}`);
@@ -71,33 +72,6 @@ export function handleJoinRoom(
     startGameAutomatically(io, code);
   } else if (room.creatorId === userId && room.gameStatus === "waiting") {
     console.log(`👑 Creator ${playerName} joined, waiting for more players...`);
-  }
-}
-
-export function handlePlayerReady(
-  io: SocketServer,
-  socket: Socket,
-  data: {
-    code: string;
-    userId: string;
-    isReady: boolean;
-  },
-): void {
-  const { code, userId, isReady } = data;
-  const room = roomStore.get(code);
-
-  if (room && room.players.has(userId)) {
-    const player = room.players.get(userId)!;
-    player.isReady = isReady;
-    console.log(`✅ Player ready: ${player.name} = ${isReady}`);
-    sendRoomUpdate(io, code);
-
-    // اگر همه بازیکنان آماده شدند و بازی شروع نشده، شروع کن
-    const allReady = Array.from(room.players.values()).every((p) => p.isReady);
-    if (allReady && room.gameStatus === "waiting" && room.players.size >= 2) {
-      console.log(`🎯 All players ready, automatically starting game...`);
-      startGameAutomatically(io, code);
-    }
   }
 }
 
@@ -223,7 +197,6 @@ export function sendRoomUpdate(io: SocketServer, code: string): void {
   const playersList = Array.from(room.players.values()).map((p) => ({
     id: p.id,
     name: p.name,
-    isReady: p.isReady,
     team: p.team,
     role: p.role,
   }));
