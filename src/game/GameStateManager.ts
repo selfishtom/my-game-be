@@ -3,6 +3,7 @@ import {
   GameWord,
   generateBoard,
   revealWord,
+  getStartingTeam,
   calculateRemainingWords,
 } from "./boardGenerator.js";
 import {
@@ -34,13 +35,15 @@ export class GameStateManager {
   private games: Map<string, GameSession> = new Map();
 
   // شروع بازی جدید
+  // prettier-ignore
   startGame(roomCode: string): GameSession {
     const words = generateBoard();
+    const startingTeam = getStartingTeam();
     const turnState = createInitialTurnState(words);
 
-    console.log(`🎮 Creating game session for room ${roomCode}`);
-    console.log(`📊 Words count: ${words.length}`);
-    console.log(`🎲 Initial turn: ${turnState.turn}`);
+    turnState.turn = startingTeam;
+
+    console.log(`🎮 Game started for room ${roomCode}, starting team: ${startingTeam === 'red' ? '🔴 Red' : '🔵 Blue'}`);
 
     const gameSession: GameSession = {
       roomCode,
@@ -51,7 +54,6 @@ export class GameStateManager {
     };
 
     this.games.set(roomCode, gameSession);
-    console.log(`✅ Game session created for room ${roomCode}`);
     return gameSession;
   }
 

@@ -1,5 +1,6 @@
 // backend/src/game/boardGenerator.ts
 import { GAME_CONSTANTS, WORD_COLORS } from "../utils/constants.js";
+import { generateBoardWords } from "./words.js";
 
 export interface GameWord {
   word: string;
@@ -7,7 +8,6 @@ export interface GameWord {
   isRevealed: boolean;
 }
 
-// تابع شافل (تصادفی‌سازی)
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -17,15 +17,18 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-// تابع تعیین تیم شروع‌کننده بر اساس تعداد کارت‌ها
+// 🔥 تعیین تیم شروع‌کننده به صورت تصادفی (50% شانس)
 export function getStartingTeam(): "red" | "blue" {
-  // طبق قانون: تیمی که کارت بیشتری دارد شروع می‌کند (آبی 9 تایی)
-  return GAME_CONSTANTS.BLUE_WORDS_COUNT > GAME_CONSTANTS.RED_WORDS_COUNT
-    ? "blue"
-    : "red";
+  const isBlueStarting = Math.random() < 0.5;
+  return isBlueStarting ? "blue" : "red";
 }
 
-// محاسبه تعداد کارت‌های باقی‌مانده هر تیم
+// 🔥 تعیین اینکه کدام تیم 9 کلمه دارد (تصادفی 50%)
+function getRandomTeamWithNineWords(): "red" | "blue" {
+  const isBlueNine = Math.random() < 0.5;
+  return isBlueNine ? "blue" : "red";
+}
+
 export function calculateRemainingWords(
   words: GameWord[],
   team: "red" | "blue",
@@ -33,7 +36,6 @@ export function calculateRemainingWords(
   return words.filter((w) => w.color === team && !w.isRevealed).length;
 }
 
-// باز کردن یک کارت و برگرداندن نتیجه
 export function revealWord(
   words: GameWord[],
   index: number,
@@ -48,43 +50,68 @@ export function revealWord(
   }
 
   word.isRevealed = true;
-
   const isGameOver = word.color === WORD_COLORS.ASSASSIN;
 
   return { color: word.color, isGameOver };
 }
 
-// تولید صفحه بازی 25 کارتی (موقتاً با کلمات نمونه)
 export function generateBoard(): GameWord[] {
-  // کلمات نمونه برای تست
-  const sampleWords: GameWord[] = [
-    { word: "آب", color: "red", isRevealed: false },
-    { word: "آتش", color: "blue", isRevealed: false },
-    { word: "باد", color: "neutral", isRevealed: false },
-    { word: "زمین", color: "red", isRevealed: false },
-    { word: "آسمان", color: "blue", isRevealed: false },
-    { word: "دریا", color: "neutral", isRevealed: false },
-    { word: "کوه", color: "red", isRevealed: false },
-    { word: "جنگل", color: "blue", isRevealed: false },
-    { word: "صحرا", color: "neutral", isRevealed: false },
-    { word: "ستاره", color: "red", isRevealed: false },
-    { word: "ماه", color: "blue", isRevealed: false },
-    { word: "خورشید", color: "neutral", isRevealed: false },
-    { word: "ابر", color: "red", isRevealed: false },
-    { word: "باران", color: "blue", isRevealed: false },
-    { word: "برف", color: "neutral", isRevealed: false },
-    { word: "رعد", color: "red", isRevealed: false },
-    { word: "برق", color: "blue", isRevealed: false },
-    { word: "طوفان", color: "assassin", isRevealed: false },
-    { word: "کتاب", color: "neutral", isRevealed: false },
-    { word: "قلم", color: "neutral", isRevealed: false },
-    { word: "مدرسه", color: "neutral", isRevealed: false },
-    { word: "دانشگاه", color: "neutral", isRevealed: false },
-    { word: "معلم", color: "neutral", isRevealed: false },
-    { word: "دانش آموز", color: "neutral", isRevealed: false },
-    { word: "ریاضی", color: "neutral", isRevealed: false },
+  const { allWordsWithColors } = generateBoardWords();
+
+  // تعیین تصادفی کدام تیم 9 کلمه دارد
+  const teamWithNine = getRandomTeamWithNineWords();
+
+  console.log(
+    `🎲 Randomly selected: ${teamWithNine === "red" ? "🔴 Red" : "🔵 Blue"} team has 9 words`,
+  );
+
+  // فیلتر کردن کلمات بر اساس تیم
+  let redWords = allWordsWithColors.filter((w) => w.color === "red");
+  let blueWords = allWordsWithColors.filter((w) => w.color === "blue");
+  let neutralWords = allWordsWithColors.filter((w) => w.color === "neutral");
+  let assassinWords = allWordsWithColors.filter((w) => w.color === "assassin");
+
+  // اگر تعداد کلمات کمتر از حد نیاز است، از بقیه کلمات استفاده کن
+  const redNeeded = teamWithNine === "red" ? 9 : 8;
+  const blueNeeded = teamWithNine === "blue" ? 9 : 8;
+
+  while (redWords.length < redNeeded) {
+    redWords.push({ word: "کلمه اضافی", color: "red" });
+  }
+  while (blueWords.length < blueNeeded) {
+    blueWords.push({ word: "کلمه اضافی", color: "blue" });
+  }
+  while (neutralWords.length < GAME_CONSTANTS.NEUTRAL_WORDS_COUNT) {
+    neutralWords.push({ word: "خنثی", color: "neutral" });
+  }
+  while (assassinWords.length < GAME_CONSTANTS.ASSASSIN_WORDS_COUNT) {
+    assassinWords.push({ word: "قاتل", color: "assassin" });
+  }
+
+  // برش به تعداد دقیق
+  redWords = redWords.slice(0, redNeeded);
+  blueWords = blueWords.slice(0, blueNeeded);
+  neutralWords = neutralWords.slice(0, GAME_CONSTANTS.NEUTRAL_WORDS_COUNT);
+  assassinWords = assassinWords.slice(0, GAME_CONSTANTS.ASSASSIN_WORDS_COUNT);
+
+  // ترکیب همه کلمات
+  let allWords: { word: string; color: string }[] = [
+    ...redWords,
+    ...blueWords,
+    ...neutralWords,
+    ...assassinWords,
   ];
 
-  // شافل نهایی (تصادفی کردن چینش کارت‌ها)
-  return shuffleArray(sampleWords);
+  // شافل نهایی
+  allWords = shuffleArray(allWords);
+
+  console.log(
+    `📊 Board stats: 🔴 Red: ${redWords.length}, 🔵 Blue: ${blueWords.length}, ⚪ Neutral: ${neutralWords.length}, 💀 Assassin: ${assassinWords.length}`,
+  );
+
+  return allWords.map((w) => ({
+    word: w.word,
+    color: w.color as "red" | "blue" | "neutral" | "assassin",
+    isRevealed: false,
+  }));
 }

@@ -4,24 +4,20 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { GAME_CONSTANTS } from "../utils/constants.js";
 
-// دریافت مسیر فایل JSON (در محیط ES modules)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const wordsJsonPath = join(__dirname, "../../../data/words.json");
+const wordsJsonPath = join(__dirname, "../data/words.json");
 
-// تایپ برای ساختار JSON
 interface WordsCategory {
   [category: string]: string[];
 }
 
-// تایپ برای کلمه با دسته‌بندی
 interface WordWithCategory {
   word: string;
   category: string;
-  index: number; // شماره اندیس اصلی کلمه
+  originalIndex: number;
 }
 
-// خواندن فایل JSON
 let wordsData: WordsCategory = {};
 
 try {
@@ -29,7 +25,6 @@ try {
   wordsData = JSON.parse(fileContent);
   console.log("📖 Words loaded successfully from:", wordsJsonPath);
 
-  // آمار بارگذاری
   const totalWords = Object.values(wordsData).reduce(
     (acc, arr) => acc + arr.length,
     0,
@@ -39,11 +34,44 @@ try {
   );
 } catch (error) {
   console.error("❌ Error loading words.json:", error);
-  // داده‌های پیش‌فرض در صورت خطا
+  // داده‌های پیش‌فرض اضطراری
   wordsData = {
-    animals: ["سگ", "گربه", "اسب", "گاو", "گوسفند", "شیر"],
-    foods: ["برنج", "نان", "پنیر", "کره", "عسل"],
-    objects: ["میز", "صندلی", "کتاب", "خودکار", "مداد"],
+    animals: [
+      "سگ",
+      "گربه",
+      "اسب",
+      "گاو",
+      "شیر",
+      "پلنگ",
+      "ببر",
+      "فیل",
+      "زرافه",
+      "خرس",
+    ],
+    foods: [
+      "برنج",
+      "نان",
+      "پنیر",
+      "کره",
+      "عسل",
+      "ماست",
+      "شیر",
+      "تخم‌مرغ",
+      "مرغ",
+      "گوشت",
+    ],
+    objects: [
+      "میز",
+      "صندلی",
+      "کتاب",
+      "خودکار",
+      "مداد",
+      "کیف",
+      "کفش",
+      "لباس",
+      "تلویزیون",
+      "یخچال",
+    ],
     places: [
       "مدرسه",
       "دانشگاه",
@@ -52,45 +80,49 @@ try {
       "سینما",
       "رستوران",
       "فرودگاه",
+      "ایستگاه",
+      "کتابخانه",
+      "موزه",
     ],
-    nature: ["کوه", "دریا", "رود", "جنگل", "دشت", "بیابان"],
-    jobs: ["پزشک", "مهندس", "معلم", "برنامه‌نویس", "راننده", "خلبان", "آشپز"],
-    abstract: ["عشق", "نفرت", "امید", "ترس", "شادی", "غم", "موفقیت"],
+    nature: [
+      "کوه",
+      "دریا",
+      "رود",
+      "جنگل",
+      "دشت",
+      "بیابان",
+      "آبشار",
+      "غار",
+      "جزیره",
+      "صحرا",
+    ],
+    jobs: [
+      "پزشک",
+      "مهندس",
+      "معلم",
+      "برنامه‌نویس",
+      "راننده",
+      "خلبان",
+      "آشپز",
+      "نقاش",
+      "نویسنده",
+      "خواننده",
+    ],
+    abstract: [
+      "عشق",
+      "نفرت",
+      "امید",
+      "ترس",
+      "شادی",
+      "غم",
+      "موفقیت",
+      "شکست",
+      "آرامش",
+      "اضطراب",
+    ],
   };
 }
 
-// تبدیل کلمات به فرمت با دسته‌بندی و اندیس
-function getWordsWithCategories(): WordWithCategory[] {
-  const result: WordWithCategory[] = [];
-
-  for (const [category, words] of Object.entries(wordsData)) {
-    words.forEach((word, index) => {
-      // جدا کردن شماره اگر در کلمه باشد
-      let cleanWord = word;
-      let originalIndex = index;
-
-      // اگر کلمه به فرمت "کلمه_شماره" بود
-      const underscoreIndex = word.lastIndexOf("_");
-      if (underscoreIndex !== -1) {
-        const possibleNumber = word.substring(underscoreIndex + 1);
-        if (!isNaN(Number(possibleNumber))) {
-          cleanWord = word.substring(0, underscoreIndex);
-          originalIndex = Number(possibleNumber);
-        }
-      }
-
-      result.push({
-        word: cleanWord,
-        category,
-        index: originalIndex,
-      });
-    });
-  }
-
-  return result;
-}
-
-// شافل (تصادفی‌سازی) آرایه
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -100,48 +132,89 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-// انتخاب تصادفی N کلمه از یک دسته
-function getRandomWordsFromCategory(
-  category: string,
-  count: number,
-): WordWithCategory[] {
-  const categoryWords = getWordsWithCategories().filter(
-    (w) => w.category === category,
-  );
-  const shuffled = shuffleArray(categoryWords);
-  return shuffled.slice(0, count);
+function getAllWords(): WordWithCategory[] {
+  const result: WordWithCategory[] = [];
+
+  for (const [category, words] of Object.entries(wordsData)) {
+    words.forEach((word, index) => {
+      result.push({
+        word,
+        category,
+        originalIndex: index,
+      });
+    });
+  }
+
+  return result;
 }
 
-// انتخاب تصادفی از کل کلمات (بدون تکرار)
-function getRandomUniqueWords(
+// 🔥 دریافت کلمات تصادفی از یک دسته با امکان گرفتن از همه دسته‌ها در صورت نیاز
+function getRandomWords(
   count: number,
-  excludeCategories?: string[],
+  excludeWords: Set<string> = new Set(),
 ): WordWithCategory[] {
-  let allWords = getWordsWithCategories();
+  let allWords = getAllWords().filter((w) => !excludeWords.has(w.word));
 
-  if (excludeCategories) {
-    allWords = allWords.filter((w) => !excludeCategories.includes(w.category));
+  // اگر تعداد کلمات کافی نیست، از کلمات تکراری استفاده کن
+  if (allWords.length < count) {
+    console.warn(
+      `⚠️ Not enough unique words! Need ${count}, have ${allWords.length}. Allowing reuse.`,
+    );
+    allWords = getAllWords(); // اجازه استفاده مجدد
   }
 
   const shuffled = shuffleArray(allWords);
   return shuffled.slice(0, count);
 }
 
-// تولید صفحه بازی با توزیع رنگ‌ها
+// 🔥 دریافت کلمات تصادفی از دسته‌های مشخص شده
+function getRandomWordsFromCategories(
+  categories: string[],
+  count: number,
+  excludeWords: Set<string> = new Set(),
+): WordWithCategory[] {
+  let words: WordWithCategory[] = [];
+
+  for (const category of categories) {
+    const categoryWords = getAllWords().filter(
+      (w) => w.category === category && !excludeWords.has(w.word),
+    );
+    words = [...words, ...categoryWords];
+  }
+
+  if (words.length < count) {
+    console.warn(
+      `⚠️ Not enough words in categories ${categories}. Need ${count}, have ${words.length}. Getting from all categories.`,
+    );
+    return getRandomWords(count, excludeWords);
+  }
+
+  const shuffled = shuffleArray(words);
+  return shuffled.slice(0, count);
+}
+
 export function generateBoardWords(): {
-  redWords: string[];
-  blueWords: string[];
-  neutralWords: string[];
-  assassinWords: string[];
   allWordsWithColors: { word: string; color: string }[];
 } {
   const allCategories = Object.keys(wordsData);
   const shuffledCategories = shuffleArray(allCategories);
 
+  const usedWords = new Set<string>();
+  const result: { word: string; color: string }[] = [];
+
+  // تعیین تصادفی کدام تیم 9 کلمه دارد
+  const teamWithNine = Math.random() < 0.5 ? "red" : "blue";
+  const redTargetCount = teamWithNine === "red" ? 9 : 8;
+  const blueTargetCount = teamWithNine === "blue" ? 9 : 8;
+
+  console.log(
+    `🎯 Target: 🔴 Red: ${redTargetCount}, 🔵 Blue: ${blueTargetCount}, ⚪ Neutral: 7, 💀 Assassin: 1`,
+  );
+
   // توزیع دسته‌بندی‌ها بین رنگ‌ها
   const redCategories = shuffledCategories.slice(
     0,
-    Math.ceil(shuffledCategories.length / 4),
+    Math.max(2, Math.ceil(shuffledCategories.length / 4)),
   );
   const blueCategories = shuffledCategories.slice(
     Math.ceil(shuffledCategories.length / 4),
@@ -155,151 +228,58 @@ export function generateBoardWords(): {
     Math.ceil((shuffledCategories.length * 3) / 4),
   );
 
-  // انتخاب کلمات از هر دسته
-  let redWords: WordWithCategory[] = [];
-  let blueWords: WordWithCategory[] = [];
-  let neutralWords: WordWithCategory[] = [];
-  let assassinWords: WordWithCategory[] = [];
-
-  // تیم قرمز (8 کلمه)
-  for (const category of redCategories) {
-    const needed = GAME_CONSTANTS.RED_WORDS_COUNT - redWords.length;
-    if (needed <= 0) break;
-    const words = getRandomWordsFromCategory(category, Math.min(needed, 3));
-    redWords.push(...words);
-  }
-  if (redWords.length < GAME_CONSTANTS.RED_WORDS_COUNT) {
-    const remaining = GAME_CONSTANTS.RED_WORDS_COUNT - redWords.length;
-    const moreWords = getRandomUniqueWords(remaining, [
-      ...redCategories,
-      ...blueCategories,
-      ...neutralCategories,
-      ...assassinCategories,
-    ]);
-    redWords.push(...moreWords);
+  // 🔥 تیم قرمز
+  const redWords = getRandomWordsFromCategories(
+    redCategories,
+    redTargetCount,
+    usedWords,
+  );
+  for (const w of redWords) {
+    usedWords.add(w.word);
+    result.push({ word: w.word, color: "red" });
   }
 
-  // تیم آبی (9 کلمه)
-  for (const category of blueCategories) {
-    const needed = GAME_CONSTANTS.BLUE_WORDS_COUNT - blueWords.length;
-    if (needed <= 0) break;
-    const words = getRandomWordsFromCategory(category, Math.min(needed, 3));
-    blueWords.push(...words);
-  }
-  if (blueWords.length < GAME_CONSTANTS.BLUE_WORDS_COUNT) {
-    const remaining = GAME_CONSTANTS.BLUE_WORDS_COUNT - blueWords.length;
-    const moreWords = getRandomUniqueWords(remaining, [
-      ...redCategories,
-      ...blueCategories,
-      ...neutralCategories,
-      ...assassinCategories,
-    ]);
-    blueWords.push(...moreWords);
+  // 🔥 تیم آبی
+  const blueWords = getRandomWordsFromCategories(
+    blueCategories,
+    blueTargetCount,
+    usedWords,
+  );
+  for (const w of blueWords) {
+    usedWords.add(w.word);
+    result.push({ word: w.word, color: "blue" });
   }
 
-  // کلمات خنثی (7 کلمه)
-  for (const category of neutralCategories) {
-    const needed = GAME_CONSTANTS.NEUTRAL_WORDS_COUNT - neutralWords.length;
-    if (needed <= 0) break;
-    const words = getRandomWordsFromCategory(category, Math.min(needed, 2));
-    neutralWords.push(...words);
-  }
-  if (neutralWords.length < GAME_CONSTANTS.NEUTRAL_WORDS_COUNT) {
-    const remaining = GAME_CONSTANTS.NEUTRAL_WORDS_COUNT - neutralWords.length;
-    const moreWords = getRandomUniqueWords(remaining, [
-      ...redCategories,
-      ...blueCategories,
-      ...neutralCategories,
-      ...assassinCategories,
-    ]);
-    neutralWords.push(...moreWords);
+  // 🔥 کلمات خنثی
+  const neutralWords = getRandomWordsFromCategories(
+    neutralCategories,
+    GAME_CONSTANTS.NEUTRAL_WORDS_COUNT,
+    usedWords,
+  );
+  for (const w of neutralWords) {
+    usedWords.add(w.word);
+    result.push({ word: w.word, color: "neutral" });
   }
 
-  // کلمات قاتل (1 کلمه)
-  for (const category of assassinCategories) {
-    if (assassinWords.length >= GAME_CONSTANTS.ASSASSIN_WORDS_COUNT) break;
-    const words = getRandomWordsFromCategory(category, 1);
-    assassinWords.push(...words);
-  }
-  if (assassinWords.length < GAME_CONSTANTS.ASSASSIN_WORDS_COUNT) {
-    const moreWords = getRandomUniqueWords(
-      GAME_CONSTANTS.ASSASSIN_WORDS_COUNT - assassinWords.length,
-      [
-        ...redCategories,
-        ...blueCategories,
-        ...neutralCategories,
-        ...assassinCategories,
-      ],
-    );
-    assassinWords.push(...moreWords);
+  // 🔥 کلمات قاتل
+  const assassinWords = getRandomWordsFromCategories(
+    assassinCategories,
+    GAME_CONSTANTS.ASSASSIN_WORDS_COUNT,
+    usedWords,
+  );
+  for (const w of assassinWords) {
+    usedWords.add(w.word);
+    result.push({ word: w.word, color: "assassin" });
   }
 
-  // ساخت آرایه نهایی با رنگ‌ها
-  const allWordsWithColors = [
-    ...redWords
-      .slice(0, GAME_CONSTANTS.RED_WORDS_COUNT)
-      .map((w) => ({ word: w.word, color: "red" })),
-    ...blueWords
-      .slice(0, GAME_CONSTANTS.BLUE_WORDS_COUNT)
-      .map((w) => ({ word: w.word, color: "blue" })),
-    ...neutralWords
-      .slice(0, GAME_CONSTANTS.NEUTRAL_WORDS_COUNT)
-      .map((w) => ({ word: w.word, color: "neutral" })),
-    ...assassinWords
-      .slice(0, GAME_CONSTANTS.ASSASSIN_WORDS_COUNT)
-      .map((w) => ({ word: w.word, color: "assassin" })),
-  ];
+  // شافل نهایی
+  const shuffledResult = shuffleArray(result);
 
-  // شافل نهایی برای چینش تصادفی
-  const shuffledFinal = shuffleArray(allWordsWithColors);
+  console.log(
+    `📊 Generated: 🔴 Red: ${redWords.length}, 🔵 Blue: ${blueWords.length}, ⚪ Neutral: ${neutralWords.length}, 💀 Assassin: ${assassinWords.length}`,
+  );
 
-  return {
-    redWords: redWords
-      .slice(0, GAME_CONSTANTS.RED_WORDS_COUNT)
-      .map((w) => w.word),
-    blueWords: blueWords
-      .slice(0, GAME_CONSTANTS.BLUE_WORDS_COUNT)
-      .map((w) => w.word),
-    neutralWords: neutralWords
-      .slice(0, GAME_CONSTANTS.NEUTRAL_WORDS_COUNT)
-      .map((w) => w.word),
-    assassinWords: assassinWords
-      .slice(0, GAME_CONSTANTS.ASSASSIN_WORDS_COUNT)
-      .map((w) => w.word),
-    allWordsWithColors: shuffledFinal,
-  };
+  return { allWordsWithColors: shuffledResult };
 }
 
-// دریافت یک کلمه تصادفی از یک دسته خاص (برای تست)
-export function getRandomWordFromCategory(category: string): string | null {
-  const categoryWords = wordsData[category];
-  if (!categoryWords || categoryWords.length === 0) return null;
-  const randomIndex = Math.floor(Math.random() * categoryWords.length);
-  return categoryWords[randomIndex];
-}
-
-// دریافت لیست تمام دسته‌بندی‌ها
-export function getCategories(): string[] {
-  return Object.keys(wordsData);
-}
-
-// دریافت آمار کلمات
-export function getWordsStats(): {
-  totalWords: number;
-  categories: { name: string; count: number }[];
-} {
-  const categories = Object.entries(wordsData).map(([name, words]) => ({
-    name,
-    count: words.length,
-  }));
-
-  const totalWords = categories.reduce((acc, cat) => acc + cat.count, 0);
-
-  return { totalWords, categories };
-}
-
-// برای استفاده در boardGenerator
 export const WORDS_DB = wordsData;
-
-// خروجی برای دیباگ
-console.log("📊 Words stats:", getWordsStats());
