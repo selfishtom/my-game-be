@@ -17,7 +17,6 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  path: "/api/socket",
   cors: {
     origin: FRONTEND_URL,
     methods: ["GET", "POST"],
