@@ -59,6 +59,7 @@ function handleDisconnect(io: SocketServer, socket: Socket): void {
         console.log(`🗑️ Room deleted (empty after disconnect): ${code}`);
       } else {
         // اگر سازنده قطع شد، نقش را به نفر بعدی منتقل کن
+        console.log("Looking for who joined next to transfer ownership...");
         if (
           room.creatorId ===
           (room.players.get(userName)?.id || room.spectators.get(userName)?.id)

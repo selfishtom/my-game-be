@@ -20,10 +20,6 @@ export function sendRoomUpdate(io: SocketServer, code: string): void {
     joinedAt: s.joinedAt,
   }));
 
-  console.log(
-    `📡 Sending room update for ${code}: ${playersList.length} players, ${spectatorsList.length} spectators`,
-  );
-
   io.to(code).emit("room-update", {
     code: room.code,
     creatorId: room.creatorId,

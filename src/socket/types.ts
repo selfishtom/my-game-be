@@ -48,7 +48,7 @@ export interface GameSession {
     number: number;
     giverId: string;
   };
-  remainingGuesses: number;
+  remainingOperatives: number;
   winner: "red" | "blue" | null;
 }
 

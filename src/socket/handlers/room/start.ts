@@ -23,7 +23,7 @@ export function sendCurrentGameState(
   const eventData = {
     words: gameSession.words,
     turn: gameSession.turnState.turn,
-    remainingGuesses: gameSession.turnState.remainingGuesses,
+    remainingOperatives: gameSession.turnState.remainingOperatives,
     currentClue: gameSession.turnState.currentClue,
     redTeam: gameSession.turnState.redTeam,
     blueTeam: gameSession.turnState.blueTeam,
@@ -47,7 +47,7 @@ export function startGameAutomatically(io: SocketServer, code: string): void {
   const eventData = {
     words: gameSession.words,
     turn: gameSession.turnState.turn,
-    remainingGuesses: gameSession.turnState.remainingGuesses,
+    remainingOperatives: gameSession.turnState.remainingOperatives,
   };
 
   console.log(`📡 Emitting 'game-started' to room ${code}:`, eventData);

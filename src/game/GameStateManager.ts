@@ -89,12 +89,7 @@ export class GameStateManager {
       }
     }
 
-    console.log(
-      `✅ Role assigned. Red team: spymaster=${game.turnState.redTeam.spymaster}, operatives=${game.turnState.redTeam.operatives.length}`,
-    );
-    console.log(
-      `✅ Role assigned. Blue team: spymaster=${game.turnState.blueTeam.spymaster}, operatives=${game.turnState.blueTeam.operatives.length}`,
-    );
+    console.log(`🎭 Role assigned: ${userId} -> ${team} ${role}`);
 
     return true;
   }
@@ -145,7 +140,7 @@ export class GameStateManager {
     userId: string,
     clue: string,
     number: number,
-  ): { success: boolean; error?: string; remainingGuesses?: number } {
+  ): { success: boolean; error?: string; remainingOperatives?: number } {
     const game = this.games.get(roomCode);
     if (!game || !game.isActive) {
       return { success: false, error: "Game not active" };
@@ -175,7 +170,7 @@ export class GameStateManager {
       number,
       giverId: userId,
     };
-    game.turnState.remainingGuesses = number + 1;
+    game.turnState.remainingOperatives = number + 1;
 
     // ایجاد جلسه رأی‌گیری
     const operatives =
@@ -192,7 +187,7 @@ export class GameStateManager {
 
     return {
       success: true,
-      remainingGuesses: game.turnState.remainingGuesses,
+      remainingOperatives: game.turnState.remainingOperatives,
     };
   }
 
@@ -302,14 +297,14 @@ export class GameStateManager {
 
     if (revealResult.color === currentTurn) {
       // درست حدس زد - یک حدس کم کن
-      game.turnState.remainingGuesses--;
+      game.turnState.remainingOperatives--;
 
-      if (game.turnState.remainingGuesses === 0) {
+      if (game.turnState.remainingOperatives === 0) {
         // نوبت عوض بشه
         newTurn = switchTurn(currentTurn);
         game.turnState.turn = newTurn;
         game.turnState.currentClue = undefined;
-        game.turnState.remainingGuesses = 0;
+        game.turnState.remainingOperatives = 0;
       } else {
         // هنوز حدس باقی مانده - دوباره رأی‌گیری
         const operatives =
@@ -328,7 +323,7 @@ export class GameStateManager {
       newTurn = switchTurn(currentTurn);
       game.turnState.turn = newTurn;
       game.turnState.currentClue = undefined;
-      game.turnState.remainingGuesses = 0;
+      game.turnState.remainingOperatives = 0;
     }
 
     return {

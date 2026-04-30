@@ -20,8 +20,8 @@ export function handleKickUser(io: SocketServer,socket: Socket,data:{code:string
 }
 
 // prettier-ignore
-export function handleLeaveRoom(io: SocketServer, socket: Socket,
-  data:{ code: string; userId: string;}): void {
+export function handleLeaveRoom(io: SocketServer, socket: Socket, data:{ code: string; userId: string;}): void 
+{
   const { code, userId } = data;
   const room = roomStore.get(code);
 

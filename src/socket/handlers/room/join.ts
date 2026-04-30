@@ -1,8 +1,9 @@
 // backend/src/socket/handlers/room/join.ts
 import { Socket, Server as SocketServer } from "socket.io";
 import { roomStore } from "../../../store/roomStore.js";
+import { Player, Spectator } from "../../types.js";
 import { sendRoomUpdate } from "./update.js";
-import { startGameAutomatically, sendCurrentGameState } from "./start.js";
+import { gameStateManager } from "../../../game/GameStateManager.js";
 
 export function handleJoinRoom(
   io: SocketServer,
@@ -25,18 +26,21 @@ export function handleJoinRoom(
       creatorId: userId,
       players: new Map(),
       spectators: new Map(),
-      gameStatus: "waiting",
+      gameStatus: "active",
     };
     roomStore.set(code, room);
     console.log(`🏠 New room created: ${code} by ${playerName}`);
+
+    const gameSession = gameStateManager.startGame(code);
+
+    io.to(code).emit("gameStarted", {
+      words: gameSession.words,
+      turn: gameSession.turnState.turn,
+      remainingOperatives: gameSession.turnState.remainingOperatives,
+    });
   }
 
-  // 🔥 ابتدا به روم بپیوند (قبل از هر چیزی)
-  socket.join(code);
-  (socket as any).userId = userId;
-  (socket as any).roomCode = code;
-
-  // اضافه کردن بازیکن به Spectator
+  // اضافه کردن کاربر به عنوان Spectator (بدون هیچ ready)
   if (!room.spectators.has(userId) && !room.players.has(userId)) {
     room.spectators.set(userId, {
       id: userId,
@@ -49,26 +53,35 @@ export function handleJoinRoom(
     );
   } else {
     // به‌روزرسانی socketId برای reconnect
-    const existingSpectator = room.spectators.get(userId);
-    if (existingSpectator) {
-      existingSpectator.socketId = socket.id;
-      console.log(`🔄 Spectator reconnected: ${playerName}`);
-    }
-    const existingPlayer = room.players.get(userId);
-    if (existingPlayer) {
-      existingPlayer.socketId = socket.id;
-      console.log(`🔄 Player reconnected: ${playerName}`);
-    }
+    const spectators = room.spectators.get(userId);
+    if (spectators) spectators.socketId = socket.id;
+    const players = room.players.get(userId);
+    if (players) players.socketId = socket.id;
+    console.log(`🔄 User reconnected: ${playerName}`);
+  }
+
+  // 🔥 ابتدا به روم بپیوند (قبل از هر چیزی)
+  socket.join(code);
+  (socket as any).userId = userId;
+  (socket as any).roomCode = code;
+
+  const currentGame = gameStateManager.getGame(code);
+  if (currentGame) {
+    socket.emit("game-started", {
+      words: currentGame.words,
+      turn: currentGame.turnState.turn,
+      remainingOperatives: currentGame.turnState.remainingOperatives,
+    });
+    socket.emit("game-state-sync", {
+      words: currentGame.words,
+      turn: currentGame.turnState.turn,
+      remainingOperatives: currentGame.turnState.remainingOperatives,
+      currentClue: currentGame.turnState.currentClue || null,
+      redTeam: currentGame.turnState.redTeam,
+      blueTeam: currentGame.turnState.blueTeam,
+      winner: currentGame.turnState.winner,
+    });
   }
 
   sendRoomUpdate(io, code);
-
-  if (room.gameStatus === "active") {
-    sendCurrentGameState(io, code, socket.id);
-  }
-
-  // 🔥 شروع بازی فقط برای روم جدید (و نه برای reconnect)
-  if (isNewRoom) {
-    startGameAutomatically(io, code);
-  }
 }

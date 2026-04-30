@@ -20,7 +20,7 @@ export interface GameTurnState {
     number: number;
     giverId: string;
   };
-  remainingGuesses: number;
+  remainingOperatives: number;
   winner: "red" | "blue" | null;
 }
 
@@ -41,14 +41,14 @@ export function createInitialTurnState(words: GameWord[]): GameTurnState {
       operatives: [],
       remainingWords: blueRemaining,
     },
-    remainingGuesses: 0,
+    remainingOperatives: 0,
     winner: null,
   };
 }
 
 // بررسی آیا نوبت به پایان رسیده
-export function isTurnOver(remainingGuesses: number): boolean {
-  return remainingGuesses <= 0;
+export function isTurnOver(remainingOperatives: number): boolean {
+  return remainingOperatives <= 0;
 }
 
 // تعویض نوبت

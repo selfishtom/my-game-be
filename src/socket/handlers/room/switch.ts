@@ -16,25 +16,21 @@ export function handleSelectTeam(
 ): void {
   const { code, userId, team } = data;
   const room = roomStore.get(code);
-
-  if (room && room.players.has(userId)) {
-    const player = room.players.get(userId)!;
-
-    // فقط Spectatorها می‌توانند تیم انتخاب کنند
-    if (player.team === null) {
-      player.team = team;
-      player.role = null;
-      console.log(
-        `✅ ${player.name} joined ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
-      );
-      sendRoomUpdate(io, code);
-    } else {
-      console.log(`⚠️ ${player.name} already in team ${player.team}`);
-      socket.emit("error", {
-        error:
-          'شما قبلاً در یک تیم عضو هستید. برای تغییر تیم از دکمه "تغییر تیم" استفاده کنید.',
-      });
-    }
+  if (room && room.spectators.has(userId)) {
+    const spectator = room.spectators.get(userId)!;
+    room.spectators.delete(userId);
+    room.players.set(userId, {
+      id: spectator.id,
+      name: spectator.name,
+      team,
+      role: null,
+      socketId: spectator.socketId,
+      joinedAt: spectator.joinedAt,
+    });
+    console.log(
+      `🎮 ${spectator.name} joined ${team === "red" ? "🔴 Red" : "🔵 Blue"} team as spectator (role not yet chosen)`,
+    );
+    sendRoomUpdate(io, code);
   }
 }
 
@@ -46,51 +42,36 @@ export function handleSelectRole(
     code: string;
     userId: string;
     team: "red" | "blue";
-    role: "spymaster" | "operative";
+    role: "spymaster" | "operative"; // 🔥 Operative به جای Guesser
   },
 ): void {
   const { code, userId, team, role } = data;
   const room = roomStore.get(code);
+  if (!room || !room.players.has(userId)) return;
 
-  if (room && room.players.has(userId)) {
-    const player = room.players.get(userId)!;
+  const player = room.players.get(userId)!;
+  if (player.team !== team) {
+    socket.emit("error", "شما در تیم اشتباهی هستید");
+    return;
+  }
 
-    // بررسی اینکه کاربر در تیم درست باشد
-    if (player.team !== team) {
-      console.log(`⚠️ ${player.name} is not in ${team} team`);
-      socket.emit("error", {
-        error: `شما در تیم ${team === "red" ? "قرمز" : "آبی"} نیستید`,
-      });
-      return;
-    }
-
-    // بررسی اینکه آیا این نقش در این تیم قبلاً پر شده است
+  // بررسی اینکه آیا تیم قبلاً Spymaster دارد
+  if (role === "spymaster") {
     const existingSpymaster = Array.from(room.players.values()).find(
       (p) => p.team === team && p.role === "spymaster" && p.id !== userId,
     );
-
-    if (role === "spymaster" && existingSpymaster) {
-      console.log(
-        `⚠️ ${team} team already has a spymaster: ${existingSpymaster.name}`,
-      );
-      socket.emit("error", { error: "این تیم قبلاً Spymaster دارد" });
+    if (existingSpymaster) {
+      socket.emit("error", "این تیم قبلاً Spymaster دارد");
       return;
     }
-
-    // ذخیره نقش در player
-    player.role = role;
-    console.log(
-      `✅ ${player.name} became ${role === "spymaster" ? "🎭 Spymaster" : "🎯 operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
-    );
-
-    // اگر بازی قبلاً شروع شده بود، در gameStateManager نیز ثبت کن
-    const game = gameStateManager.getGame(code);
-    if (game && game.isActive) {
-      gameStateManager.assignRole(code, userId, team, role);
-    }
-
-    sendRoomUpdate(io, code);
   }
+
+  player.role = role;
+  gameStateManager.assignRole(code, userId, team, role);
+  sendRoomUpdate(io, code);
+  console.log(
+    `🎭 ${player.name} became ${role === "spymaster" ? "Spymaster" : "Operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
+  );
 }
 
 export function handleSwitchTeam(

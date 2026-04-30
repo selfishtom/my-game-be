@@ -182,7 +182,7 @@ export function startGameAutomatically(io: SocketServer, code: string): void {
   io.to(code).emit("game-started", {
     words: gameSession.words,
     turn: gameSession.turnState.turn,
-    remainingGuesses: gameSession.turnState.remainingGuesses,
+    remainingOperatives: gameSession.turnState.remainingOperatives,
   });
 
   console.log(
