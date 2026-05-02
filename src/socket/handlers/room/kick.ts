@@ -70,7 +70,7 @@ export function handleEndGame(io:SocketServer,socket:Socket,data:{code:string;us
   const room = roomStore.get(code);
   if (room && room.creatorId === userId) {
     room.gameStatus = "finished";
-    gameStateManager.endGame(code, null);
+    gameStateManager.removeGame(code);
     sendRoomUpdate(io, code);
     io.to(code).emit("game-over", { winner: null });
   }
