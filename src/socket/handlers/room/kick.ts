@@ -64,37 +64,6 @@ export function handleLeaveRoom(io: SocketServer, socket: Socket, data:{ code: s
 }
 
 // prettier-ignore
-export function handleRestartGame(io: SocketServer, socket: Socket, data: { code: string; userId: string;}) 
-{
-  const { code, userId } = data;
-  const room = roomStore.get(code);
-  
-  if (!room || room.creatorId !== userId) {
-    socket.emit('error', { error: 'Only creator can restart the game' });
-    return;
-  }
-
-  // ریست کردن وضعیت روم
-  room.gameStatus = 'active';
-  room.players.clear();
-  room.spectators.clear();
-
-  // شروع مجدد بازی
-  const gameSession = gameStateManager.startGame(code);
-  
-  // اطلاع به همه
-  io.to(code).emit('game-restarted');
-  io.to(code).emit('game-started', {
-    words: gameSession.words,
-    turn: gameSession.turnState.turn,
-    remainingOperatives: gameSession.turnState.remainingOperatives
-  });
-  
-  sendRoomUpdate(io, code);
-  console.log(`🔄 Game restarted in room ${code} by ${userId}`);
-}
-
-// prettier-ignore
 export function handleEndGame(io:SocketServer,socket:Socket,data:{code:string;userId:string;}):void
 {
   const { code, userId } = data;
