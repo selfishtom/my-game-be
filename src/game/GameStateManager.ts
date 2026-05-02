@@ -192,17 +192,9 @@ export class GameStateManager {
   }
 
   // ثبت رأی برای حدس کلمه
-  castVote(
-    roomCode: string,
-    userId: string,
-    wordIndex: number,
-  ): {
-    success: boolean;
-    error?: string;
-    revealed?: { color: string; isGameOver: boolean };
-    newTurn?: "red" | "blue";
-    winner?: "red" | "blue" | null;
-  } {
+  // prettier-ignore
+  castVote( roomCode: string, userId: string, wordIndex: number ): { success: boolean; error?: string; revealed?: { color: string; isGameOver: boolean }; newTurn?: "red" | "blue"; winner?: "red" | "blue" | null; }
+  {
     const game = this.games.get(roomCode);
     if (!game || !game.isActive || !game.voteSession) {
       return { success: false, error: "No active voting session" };
@@ -212,8 +204,7 @@ export class GameStateManager {
     const currentTurn = voteSession.targetTeam;
 
     // بررسی اینکه کاربر جزو تیم حدس‌زننده هست
-    const isOperative =
-      currentTurn === "red"
+    const isOperative = currentTurn === "red"
         ? game.turnState.redTeam.operatives.includes(userId)
         : game.turnState.blueTeam.operatives.includes(userId);
 
@@ -241,18 +232,10 @@ export class GameStateManager {
 
     // به‌روزرسانی تعداد کلمات باقی‌مانده
     if (revealResult.color === "red") {
-      const newRedTeam = updateRemainingWords(
-        game.words,
-        game.turnState.redTeam,
-        "red",
-      );
+      const newRedTeam = updateRemainingWords( game.words, game.turnState.redTeam, "red" );
       game.turnState.redTeam = newRedTeam;
     } else if (revealResult.color === "blue") {
-      const newBlueTeam = updateRemainingWords(
-        game.words,
-        game.turnState.blueTeam,
-        "blue",
-      );
+      const newBlueTeam = updateRemainingWords( game.words, game.turnState.blueTeam, "blue" );
       game.turnState.blueTeam = newBlueTeam;
     }
 
@@ -307,16 +290,10 @@ export class GameStateManager {
         game.turnState.remainingOperatives = 0;
       } else {
         // هنوز حدس باقی مانده - دوباره رأی‌گیری
-        const operatives =
-          currentTurn === "red"
+        const operatives = currentTurn === "red"
             ? game.turnState.redTeam.operatives
             : game.turnState.blueTeam.operatives;
-        game.voteSession = createVoteSession(
-          roomCode,
-          currentTurn,
-          operatives,
-          Date.now(),
-        );
+        game.voteSession = createVoteSession( roomCode, currentTurn, operatives, Date.now() );
       }
     } else {
       // اشتباه حدس زد - نوبت عوض بشه

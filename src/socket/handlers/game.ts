@@ -152,34 +152,44 @@ export function handleEndTurn(
     code: string;
     userId: string;
   },
-): void {
+) {
   const { code, userId } = data;
   const room = roomStore.get(code);
-
   if (!room || room.gameStatus !== "active") return;
 
   const game = gameStateManager.getGame(code);
-  if (
-    game &&
-    game.turnState.turn ===
-      (game.turnState.redTeam.spymaster === userId
-        ? "red"
-        : game.turnState.blueTeam.spymaster === userId
-          ? "blue"
-          : null)
-  ) {
-    const newTurn = game.turnState.turn === "red" ? "blue" : "red";
-    game.turnState.turn = newTurn;
-    game.turnState.currentClue = undefined;
-    game.turnState.remainingOperatives = 0;
+  if (!game) return;
 
-    io.to(code).emit("turn-changed", { turn: newTurn });
-    io.to(code).emit("game-state-update", {
-      turn: newTurn,
-      currentClue: undefined,
-      remainingOperatives: 0,
-    });
+  // بررسی کنید کاربر در نوبت درست است
+  const currentTurn = game.turnState.turn;
+  const isCurrentTeam =
+    (currentTurn === "red" && game.turnState.redTeam.spymaster === userId) ||
+    (currentTurn === "blue" && game.turnState.blueTeam.spymaster === userId) ||
+    game.turnState.redTeam.operatives.includes(userId) ||
+    game.turnState.blueTeam.operatives.includes(userId);
+
+  if (!isCurrentTeam) {
+    socket.emit("error", { error: "نوبت شما نیست" });
+    return;
   }
+
+  // تغییر نوبت
+  const newTurn = currentTurn === "red" ? "blue" : "red";
+  game.turnState.turn = newTurn;
+  game.turnState.currentClue = undefined;
+  game.turnState.remainingOperatives = 0;
+
+  // ارسال رویداد به همه
+  io.to(code).emit("turn-changed", { turn: newTurn });
+  io.to(code).emit("game-state-update", {
+    turn: newTurn,
+    currentClue: undefined,
+    remainingOperatives: 0,
+  });
+
+  console.log(
+    `🔄 Turn changed from ${currentTurn} to ${newTurn} in room ${code}`,
+  );
 }
 
 export function handleAssignRole(
@@ -205,31 +215,3 @@ export function handleAssignRole(
     }
   }
 }
-
-// تابع کمکی برای ارسال آپدیت روم
-// function sendRoomUpdate(io: SocketServer, code: string): void {
-//   const room = roomStore.get(code);
-//   if (!room) return;
-
-//   const playersList = Array.from(room.players.values()).map((p) => ({
-//     id: p.id,
-//     name: p.name,
-//     team: p.team,
-//     role: p.role,
-//   }));
-
-//   const spectatorsList = Array.from(room.spectators.values()).map((s) => ({
-//     id: s.id,
-//     name: s.name,
-//   }));
-
-//   io.to(code).emit("room-update", {
-//     code: room.code,
-//     creatorId: room.creatorId,
-//     players: playersList,
-//     spectators: spectatorsList,
-//     playerCount: playersList.length,
-//     spectatorCount: spectatorsList.length,
-//     gameStatus: room.gameStatus,
-//   });
-// }

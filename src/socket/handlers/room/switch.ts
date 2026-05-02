@@ -151,7 +151,7 @@ export function handleSwitchRole(
     // تغییر نقش
     player.role = role;
     console.log(
-      `🔄 ${player.name} switched to ${role === "spymaster" ? "🎭 Spymaster" : "🎯 operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
+      `🔄 ${player.name} switched to ${role === "spymaster" ? "🎭 Spymaster" : "🎯 Operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
     );
 
     sendRoomUpdate(io, code);

@@ -37,17 +37,9 @@ export function createVoteSession(
 }
 
 // ثبت رأی
-export function castVote(
-  voteSession: VoteSession,
-  userId: string,
-  wordIndex: number,
-): {
-  success: boolean;
-  error?: string;
-  voteCount?: Map<number, number>;
-  reachedThreshold?: boolean;
-  selectedWord?: number;
-} {
+// prettier-ignore
+export function castVote( voteSession: VoteSession, userId: string, wordIndex: number): { success: boolean; error?: string; voteCount?: Map<number, number>; reachedThreshold?: boolean; selectedWord?: number;}
+{
   if (!voteSession.isActive) {
     return { success: false, error: "Voting session is not active" };
   }
@@ -79,12 +71,7 @@ export function castVote(
     }
   }
 
-  return {
-    success: true,
-    voteCount,
-    reachedThreshold,
-    selectedWord,
-  };
+  return { success: true, voteCount, reachedThreshold, selectedWord };
 }
 
 // پایان جلسه رأی‌گیری
