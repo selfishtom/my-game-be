@@ -1,9 +1,9 @@
 // backend/src/game/GameStateManager.ts
+
 import {
   GameWord,
   generateBoard,
   revealWord,
-  getStartingTeam,
   calculateRemainingWords,
 } from "./boardGenerator.js";
 import {
@@ -13,125 +13,40 @@ import {
   switchTurn,
   updateRemainingWords,
   checkWinner,
-  declareWinner,
 } from "./turnManager.js";
-import {
-  VoteSession,
-  createVoteSession,
-  castVote,
-  endVoteSession,
-  setVoteTimeout,
-} from "./voteManager.js";
 
 export interface GameSession {
   roomCode: string;
   words: GameWord[];
   turnState: GameTurnState;
-  voteSession: VoteSession | null;
   isActive: boolean;
 }
 
 export class GameStateManager {
   private games: Map<string, GameSession> = new Map();
 
-  // شروع بازی جدید
-  // prettier-ignore
   startGame(roomCode: string): GameSession {
     const words = generateBoard();
-    const startingTeam = getStartingTeam();
     const turnState = createInitialTurnState(words);
-
-    turnState.turn = startingTeam;
-
-    console.log(`🎮 Game started for room ${roomCode}, starting team: ${startingTeam === 'red' ? '🔴 Red' : '🔵 Blue'}`);
 
     const gameSession: GameSession = {
       roomCode,
       words,
       turnState,
-      voteSession: null,
       isActive: true,
     };
 
     this.games.set(roomCode, gameSession);
+    console.log(`🎮 Game started for room ${roomCode}`);
     return gameSession;
   }
 
-  assignRole(
-    roomCode: string,
-    userId: string,
-    team: "red" | "blue",
-    role: "spymaster" | "operative",
-  ): boolean {
-    const game = this.games.get(roomCode);
-    if (!game) {
-      console.log(`❌ Game not found for room ${roomCode}`);
-      return false;
-    }
-
-    console.log(`🎭 Assigning role: user ${userId} -> ${team} ${role}`);
-
-    if (role === "spymaster") {
-      if (team === "red") {
-        game.turnState.redTeam.spymaster = userId;
-      } else {
-        game.turnState.blueTeam.spymaster = userId;
-      }
-    } else {
-      if (team === "red") {
-        if (!game.turnState.redTeam.operatives.includes(userId)) {
-          game.turnState.redTeam.operatives.push(userId);
-        }
-      } else {
-        if (!game.turnState.blueTeam.operatives.includes(userId)) {
-          game.turnState.blueTeam.operatives.push(userId);
-        }
-      }
-    }
-
-    console.log(`🎭 Role assigned: ${userId} -> ${team} ${role}`);
-
-    return true;
-  }
-
-  // دریافت جلسه بازی
   getGame(roomCode: string): GameSession | undefined {
     return this.games.get(roomCode);
   }
 
-  // پایان بازی
-  endGame(roomCode: string, winner: "red" | "blue" | null): void {
-    const game = this.games.get(roomCode);
-    if (game) {
-      game.isActive = false;
-      game.turnState.winner = winner;
-      console.log(
-        `🏆 Game ended for room ${roomCode}, winner: ${winner || "none"}`,
-      );
-    }
-  }
-
-  // حذف بازی
   removeGame(roomCode: string): void {
     this.games.delete(roomCode);
-  }
-
-  // گرفتن تیم قرمز
-  getRedTeam(roomCode: string) {
-    const game = this.games.get(roomCode);
-    return game?.turnState.redTeam;
-  }
-
-  // گرفتن تیم آبی
-  getBlueTeam(roomCode: string) {
-    const game = this.games.get(roomCode);
-    return game?.turnState.blueTeam;
-  }
-
-  // گرفتن نوبت فعلی
-  getCurrentTurn(roomCode: string) {
-    const game = this.games.get(roomCode);
-    return game?.turnState.turn;
   }
 
   // دادن رمز توسط Spymaster
@@ -172,17 +87,8 @@ export class GameStateManager {
     };
     game.turnState.remainingOperatives = number + 1;
 
-    // ایجاد جلسه رأی‌گیری
-    const operatives =
-      currentTurn === "red"
-        ? game.turnState.redTeam.operatives
-        : game.turnState.blueTeam.operatives;
-
-    game.voteSession = createVoteSession(
-      roomCode,
-      currentTurn,
-      operatives,
-      Date.now(),
+    console.log(
+      `💡 Clue given: "${clue} ${number}" by ${userId}, remaining operatives: ${game.turnState.remainingOperatives}`,
     );
 
     return {
@@ -191,53 +97,74 @@ export class GameStateManager {
     };
   }
 
-  // ثبت رأی برای حدس کلمه
-  // prettier-ignore
-  castVote( roomCode: string, userId: string, wordIndex: number ): { success: boolean; error?: string; revealed?: { color: string; isGameOver: boolean }; newTurn?: "red" | "blue"; winner?: "red" | "blue" | null; }
-  {
+  // حدس زدن توسط operative (بدون رأی‌گیری)
+  makeGuess(
+    roomCode: string,
+    userId: string,
+    wordIndex: number,
+  ): {
+    success: boolean;
+    error?: string;
+    revealed?: { color: string; isGameOver: boolean };
+    newTurn?: "red" | "blue";
+    winner?: "red" | "blue" | null;
+  } {
     const game = this.games.get(roomCode);
-    if (!game || !game.isActive || !game.voteSession) {
-      return { success: false, error: "No active voting session" };
+    if (!game || !game.isActive) {
+      return { success: false, error: "Game not active" };
     }
 
-    const voteSession = game.voteSession;
-    const currentTurn = voteSession.targetTeam;
+    const currentTurn = game.turnState.turn;
 
-    // بررسی اینکه کاربر جزو تیم حدس‌زننده هست
-    const isOperative = currentTurn === "red"
+    // بررسی اینکه کاربر در تیم فعلی و operative است
+    const isOperative =
+      currentTurn === "red"
         ? game.turnState.redTeam.operatives.includes(userId)
         : game.turnState.blueTeam.operatives.includes(userId);
 
     if (!isOperative) {
-      return { success: false, error: "You are not a operative for this team" };
+      return {
+        success: false,
+        error: "Only operatives can guess during their turn",
+      };
     }
 
-    // ثبت رأی
-    const voteResult = castVote(voteSession, userId, wordIndex);
-    if (!voteResult.success) {
-      return { success: false, error: voteResult.error };
+    // بررسی اینکه clue داده شده باشد
+    if (!game.turnState.currentClue) {
+      return { success: false, error: "No clue has been given yet" };
     }
 
-    // اگر به آستانه نرسیده، فقط آرا را به‌روز می‌کنیم
-    if (!voteResult.reachedThreshold || voteResult.selectedWord === undefined) {
-      return { success: true };
+    // بررسی اینکه حدس باقی مانده باشد
+    if (game.turnState.remainingOperatives <= 0) {
+      return { success: false, error: "No guesses left" };
     }
-
-    // به آستانه رسیده - کارت نهایی انتخاب شده
-    endVoteSession(voteSession);
-    game.voteSession = null;
 
     // باز کردن کارت
-    const revealResult = revealWord(game.words, voteResult.selectedWord);
+    const revealResult = revealWord(game.words, wordIndex);
+
+    // کم کردن یک حدس
+    game.turnState.remainingOperatives--;
 
     // به‌روزرسانی تعداد کلمات باقی‌مانده
     if (revealResult.color === "red") {
-      const newRedTeam = updateRemainingWords( game.words, game.turnState.redTeam, "red" );
+      const newRedTeam = updateRemainingWords(
+        game.words,
+        game.turnState.redTeam,
+        "red",
+      );
       game.turnState.redTeam = newRedTeam;
     } else if (revealResult.color === "blue") {
-      const newBlueTeam = updateRemainingWords( game.words, game.turnState.blueTeam, "blue" );
+      const newBlueTeam = updateRemainingWords(
+        game.words,
+        game.turnState.blueTeam,
+        "blue",
+      );
       game.turnState.blueTeam = newBlueTeam;
     }
+
+    console.log(
+      `🔨 Guess: user ${userId} guessed word ${wordIndex}, result: ${revealResult.color}, remaining guesses: ${game.turnState.remainingOperatives}`,
+    );
 
     // بررسی برنده شدن
     const redWinner = checkWinner(game.turnState.redTeam);
@@ -275,26 +202,18 @@ export class GameStateManager {
       };
     }
 
-    // مدیریت نوبت و حدس‌های باقی‌مانده
     let newTurn: "red" | "blue" | undefined;
 
     if (revealResult.color === currentTurn) {
-      // درست حدس زد - یک حدس کم کن
-      game.turnState.remainingOperatives--;
-
+      // درست حدس زد
       if (game.turnState.remainingOperatives === 0) {
-        // نوبت عوض بشه
+        // حدس‌ها تمام شد، نوبت عوض بشه
         newTurn = switchTurn(currentTurn);
         game.turnState.turn = newTurn;
         game.turnState.currentClue = undefined;
         game.turnState.remainingOperatives = 0;
-      } else {
-        // هنوز حدس باقی مانده - دوباره رأی‌گیری
-        const operatives = currentTurn === "red"
-            ? game.turnState.redTeam.operatives
-            : game.turnState.blueTeam.operatives;
-        game.voteSession = createVoteSession( roomCode, currentTurn, operatives, Date.now() );
       }
+      // اگر حدس باقی دارد، همان تیم继续 حدس می‌زند
     } else {
       // اشتباه حدس زد - نوبت عوض بشه
       newTurn = switchTurn(currentTurn);
@@ -310,7 +229,51 @@ export class GameStateManager {
       winner: game.turnState.winner,
     };
   }
+
+  assignRole(
+    roomCode: string,
+    userId: string,
+    team: "red" | "blue",
+    role: "spymaster" | "operative",
+  ): boolean {
+    const game = this.games.get(roomCode);
+    if (!game) return false;
+
+    if (role === "spymaster") {
+      if (team === "red") {
+        game.turnState.redTeam.spymaster = userId;
+      } else {
+        game.turnState.blueTeam.spymaster = userId;
+      }
+    } else {
+      if (team === "red") {
+        if (!game.turnState.redTeam.operatives.includes(userId)) {
+          game.turnState.redTeam.operatives.push(userId);
+        }
+      } else {
+        if (!game.turnState.blueTeam.operatives.includes(userId)) {
+          game.turnState.blueTeam.operatives.push(userId);
+        }
+      }
+    }
+
+    console.log(`🎭 Role assigned: ${userId} -> ${team} ${role}`);
+    return true;
+  }
+
+  endTurn(roomCode: string): { success: boolean; newTurn?: "red" | "blue" } {
+    const game = this.games.get(roomCode);
+    if (!game || !game.isActive) {
+      return { success: false };
+    }
+
+    const newTurn = switchTurn(game.turnState.turn);
+    game.turnState.turn = newTurn;
+    game.turnState.currentClue = undefined;
+    game.turnState.remainingOperatives = 0;
+
+    return { success: true, newTurn };
+  }
 }
 
-// یک instance واحد برای کل برنامه
 export const gameStateManager = new GameStateManager();

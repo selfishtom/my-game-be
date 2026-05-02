@@ -48,35 +48,27 @@ export function handleGiveClue(
 export function handleMakeGuess(
   io: SocketServer,
   socket: Socket,
-  data: { code: string; userId: string; wordIndex: number },
-  callback?: (response: {
-    success: boolean;
-    error?: string;
-    revealed?: { color: string; isGameOver: boolean };
-    newTurn?: "red" | "blue";
-    winner?: "red" | "blue" | null;
-  }) => void,
-): void {
-  console.log("🔨 handleMakeGuess called:", data);
+  data: {
+    code: string;
+    userId: string;
+    wordIndex: number;
+  },
+  callback?: any,
+) {
   const { code, userId, wordIndex } = data;
   const room = roomStore.get(code);
 
   if (!room || room.gameStatus !== "active") {
-    if (callback) callback({ success: false, error: "Game is not active" });
-    else socket.emit("error", { error: "Game is not active" });
+    callback?.({ success: false, error: "Game is not active" });
     return;
   }
 
-  const result = gameStateManager.castVote(code, userId, wordIndex);
+  // استفاده از makeGuess به جای castVote
+  const result = gameStateManager.makeGuess(code, userId, wordIndex);
 
-  if (callback) {
-    callback(result);
-  } else if (!result.success) {
-    socket.emit("error", { error: result.error });
-  }
+  callback?.(result);
 
   if (result.success && result.revealed) {
-    // ارسال نتیجه باز شدن کارت به همه
     io.to(code).emit("word-revealed", {
       wordIndex,
       color: result.revealed.color,
@@ -85,62 +77,28 @@ export function handleMakeGuess(
       winner: result.winner,
     });
 
-    // 🔥 اگر نوبت عوض شده، یک رویداد جداگانه برای پاک کردن clue بفرست
-    if (result.newTurn) {
+    if (result.revealed.isGameOver || result.winner) {
+      room.gameStatus = "finished";
+      io.to(code).emit("game-over", {
+        winner: result.winner,
+        message:
+          result.winner === "red"
+            ? "🔴 تیم قرمز برنده شد!"
+            : "🔵 تیم آبی برنده شد!",
+      });
+    } else if (result.newTurn) {
       io.to(code).emit("turn-changed", { turn: result.newTurn });
     }
 
-    // ==========================================
-    // 🔥 بررسی پایان بازی و ارسال اطلاعیه
-    // ==========================================
-    if (result.revealed.isGameOver || result.winner) {
-      room.gameStatus = "finished";
-
-      let message = "";
-      let winnerName = "";
-
-      if (result.winner === "red") {
-        winnerName = "🔴 تیم قرمز";
-        message = "🎉 تیم قرمز بازی را برد!";
-      } else if (result.winner === "blue") {
-        winnerName = "🔵 تیم آبی";
-        message = "🎉 تیم آبی بازی را برد!";
-      } else if (result.revealed.color === "assassin") {
-        const currentTurn = result.newTurn === "red" ? "blue" : "red";
-        winnerName = currentTurn === "red" ? "🔴 تیم قرمز" : "🔵 تیم آبی";
-        message = `💀 کارت قاتل باز شد! ${winnerName} برنده شد!`;
-      } else {
-        message = "🎮 بازی تمام شد!";
-      }
-
-      console.log(`🏆 Game over in room ${code}: ${message}`);
-
-      io.to(code).emit("game-over", {
-        winner:
-          result.winner ||
-          (result.revealed.color === "assassin"
-            ? room.creatorId === userId
-              ? "blue"
-              : "red"
-            : null),
-        message,
-        isAssassinLoss: result.revealed.color === "assassin",
+    // ارسال وضعیت به‌روز شده
+    const game = gameStateManager.getGame(code);
+    if (game) {
+      io.to(code).emit("game-state-update", {
+        words: game.words,
+        turn: game.turnState.turn,
+        remainingOperatives: game.turnState.remainingOperatives,
+        currentClue: game.turnState.currentClue,
       });
-
-      sendRoomUpdate(io, code);
-    } else {
-      // بازی ادامه دارد - ارسال وضعیت به‌روز شده
-      const game = gameStateManager.getGame(code);
-      if (game) {
-        io.to(code).emit("game-state-update", {
-          words: game.words,
-          turn: game.turnState.turn,
-          remainingOperatives: game.turnState.remainingOperatives,
-          currentClue: game.turnState.currentClue,
-          redTeam: game.turnState.redTeam,
-          blueTeam: game.turnState.blueTeam,
-        });
-      }
     }
   }
 }
@@ -148,48 +106,14 @@ export function handleMakeGuess(
 export function handleEndTurn(
   io: SocketServer,
   socket: Socket,
-  data: {
-    code: string;
-    userId: string;
-  },
+  data: { code: string; userId: string },
 ) {
-  const { code, userId } = data;
-  const room = roomStore.get(code);
-  if (!room || room.gameStatus !== "active") return;
+  const { code } = data;
+  const result = gameStateManager.endTurn(code);
 
-  const game = gameStateManager.getGame(code);
-  if (!game) return;
-
-  // بررسی کنید کاربر در نوبت درست است
-  const currentTurn = game.turnState.turn;
-  const isCurrentTeam =
-    (currentTurn === "red" && game.turnState.redTeam.spymaster === userId) ||
-    (currentTurn === "blue" && game.turnState.blueTeam.spymaster === userId) ||
-    game.turnState.redTeam.operatives.includes(userId) ||
-    game.turnState.blueTeam.operatives.includes(userId);
-
-  if (!isCurrentTeam) {
-    socket.emit("error", { error: "نوبت شما نیست" });
-    return;
+  if (result.success && result.newTurn) {
+    io.to(code).emit("turn-changed", { turn: result.newTurn });
   }
-
-  // تغییر نوبت
-  const newTurn = currentTurn === "red" ? "blue" : "red";
-  game.turnState.turn = newTurn;
-  game.turnState.currentClue = undefined;
-  game.turnState.remainingOperatives = 0;
-
-  // ارسال رویداد به همه
-  io.to(code).emit("turn-changed", { turn: newTurn });
-  io.to(code).emit("game-state-update", {
-    turn: newTurn,
-    currentClue: undefined,
-    remainingOperatives: 0,
-  });
-
-  console.log(
-    `🔄 Turn changed from ${currentTurn} to ${newTurn} in room ${code}`,
-  );
 }
 
 export function handleAssignRole(
