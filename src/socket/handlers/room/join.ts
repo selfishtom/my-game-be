@@ -4,6 +4,7 @@ import { roomStore } from "../../../store/roomStore.js";
 import { Player, Spectator } from "../../types.js";
 import { sendRoomUpdate } from "./update.js";
 import { gameStateManager } from "../../../game/GameStateManager.js";
+import { getGameLogger } from "../../../game/GameLogger.js";
 
 export function handleJoinRoom(
   io: SocketServer,
@@ -62,6 +63,19 @@ export function handleJoinRoom(
 
   // 🔥 ابتدا به روم بپیوند (قبل از هر چیزی)
   socket.join(code);
+
+  // در handleJoinRoom، بعد از اینکه کاربر اضافه شد:
+  const logger = getGameLogger(code);
+  const logEntry = logger.playerJoined(playerName);
+  io.to(code).emit("game-log", { log: logEntry });
+
+  // همچنین برای ارسال لاگ‌های قبلی به کاربر جدید
+  const existingLogs = logger.getLogs();
+  if (existingLogs.length > 0) {
+    socket.emit("game-logs", { logs: existingLogs });
+    console.log(`📤 Sent ${existingLogs.length} logs to socket ${socket.id}`);
+  }
+
   (socket as any).userId = userId;
   (socket as any).roomCode = code;
 

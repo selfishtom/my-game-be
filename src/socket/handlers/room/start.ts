@@ -4,6 +4,7 @@ import { roomStore } from "../../../store/roomStore.js";
 import { gameStateManager } from "../../../game/GameStateManager.js";
 import { sendRoomUpdate } from "./update.js";
 import type { Player } from "../../types.js";
+import { getGameLogger } from "../../../game/GameLogger.js";
 
 export function sendCurrentGameState(
   io: SocketServer,
@@ -55,9 +56,9 @@ export function startGameAutomatically(io: SocketServer, code: string): void {
 
   sendRoomUpdate(io, code);
 
-  console.log(
-    `✅ Game started in room ${code}, turn: ${gameSession.turnState.turn}`,
-  );
+  const logger = getGameLogger(code);
+  const logEntry = logger.gameStarted(gameSession.turnState.turn);
+  io.to(code).emit("game-log", { log: logEntry });
 }
 
 export function handleJoinGame(

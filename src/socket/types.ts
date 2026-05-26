@@ -21,6 +21,7 @@ export interface Room {
   players: Map<string, Player>;
   spectators: Map<string, Spectator>;
   gameStatus: "waiting" | "active" | "finished";
+  logs?: GameLogEntry[];
 }
 
 export interface GameWord {
@@ -89,4 +90,20 @@ export interface VotePayload {
   code: string;
   userId: string;
   wordIndex: number;
+}
+
+export interface GameLogEntry {
+  id: string;
+  timestamp: number;
+  type:
+    | "info"
+    | "success"
+    | "error"
+    | "warning"
+    | "turn"
+    | "clue"
+    | "guess"
+    | "winner";
+  message: string;
+  details?: any;
 }

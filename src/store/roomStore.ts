@@ -1,5 +1,6 @@
 // backend/src/store/roomStore.ts
-import { Room, Player, Spectator } from "../socket/types.js";
+import { Room, Player, Spectator, GameLogEntry } from "../socket/types.js";
+import { getGameLogger } from "../game/GameLogger.js";
 
 // ذخیره‌سازی روم‌ها در حافظه (در production از Redis استفاده کنید)
 const rooms = new Map<string, Room>();
@@ -202,6 +203,35 @@ export const roomStore = {
       return true;
     }
     return false;
+  },
+
+  // دریافت لاگ‌های روم
+  getLogs(code: string): GameLogEntry[] {
+    const logger = getGameLogger(code);
+    return logger.getLogs();
+  },
+
+  // اضافه کردن لاگ به روم
+  addLog(
+    code: string,
+    type: GameLogEntry["type"],
+    message: string,
+    details?: any,
+  ): void {
+    const logger = getGameLogger(code);
+    const newMessage =
+      "[ " +
+      type +
+      " ] " +
+      message +
+      (details ? " | details: " + JSON.stringify(details) : "");
+    logger.info(newMessage);
+  },
+
+  // پاک کردن لاگ‌های روم
+  clearLogs(code: string): void {
+    const logger = getGameLogger(code);
+    logger.clearLogs();
   },
 };
 

@@ -3,6 +3,7 @@ import { Socket, Server as SocketServer } from "socket.io";
 import { roomStore } from "../../../store/roomStore.js";
 import { gameStateManager } from "../../../game/GameStateManager.js";
 import { sendRoomUpdate } from "./update.js";
+import { getGameLogger } from "../../../game/GameLogger.js";
 
 // انتخاب تیم (از Spectator به عضو تیم)
 export function handleSelectTeam(
@@ -30,6 +31,7 @@ export function handleSelectTeam(
     console.log(
       `🎮 ${spectator.name} joined ${team === "red" ? "🔴 Red" : "🔵 Blue"} team as spectator (role not yet chosen)`,
     );
+
     sendRoomUpdate(io, code);
   }
 }
@@ -69,9 +71,14 @@ export function handleSelectRole(
   player.role = role;
   gameStateManager.assignRole(code, userId, team, role);
   sendRoomUpdate(io, code);
-  console.log(
-    `🎭 ${player.name} became ${role === "spymaster" ? "Spymaster" : "Operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
-  );
+
+  // بعد از تخصیص نقش
+  const logger = getGameLogger(code);
+  const logEntry = logger.roleAssigned(player?.name || userId, team, role);
+  io.to(code).emit("game-log", { log: logEntry });
+  // console.log(
+  //   `🎭 ${player.name} became ${role === "spymaster" ? "Spymaster" : "Operative"} of ${team === "red" ? "🔴 Red" : "🔵 Blue"} team`,
+  // );
 }
 
 export function handleSwitchTeam(

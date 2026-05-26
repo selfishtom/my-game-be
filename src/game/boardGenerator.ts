@@ -1,6 +1,6 @@
 // backend/src/game/boardGenerator.ts
 import { GAME_CONSTANTS, WORD_COLORS } from "../utils/constants.js";
-import { generateBoardWords } from "./words.js";
+import { getAllWords, getRandomWords, shuffleArray } from "./words.js";
 
 export interface GameWord {
   word: string;
@@ -8,25 +8,14 @@ export interface GameWord {
   isRevealed: boolean;
 }
 
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 // 🔥 تعیین تیم شروع‌کننده به صورت تصادفی (50% شانس)
 export function getStartingTeam(): "red" | "blue" {
-  const isBlueStarting = Math.random() < 0.5;
-  return isBlueStarting ? "blue" : "red";
+  return Math.random() < 0.5 ? "blue" : "red";
 }
 
 // 🔥 تعیین اینکه کدام تیم 9 کلمه دارد (تصادفی 50%)
 function getRandomTeamWithNineWords(): "red" | "blue" {
-  const isBlueNine = Math.random() < 0.5;
-  return isBlueNine ? "blue" : "red";
+  return Math.random() < 0.5 ? "blue" : "red";
 }
 
 export function calculateRemainingWords(
@@ -56,90 +45,94 @@ export function revealWord(
 }
 
 export function generateBoard(): GameWord[] {
-  const { allWordsWithColors } = generateBoardWords();
+  const allWords = getAllWords();
 
   // بررسی کن که کلمات کافی داریم
-  if (allWordsWithColors.length < GAME_CONSTANTS.TOTAL_WORDS) {
+  if (allWords.length < GAME_CONSTANTS.TOTAL_WORDS) {
     console.error(
-      `❌ Not enough words! Need ${GAME_CONSTANTS.TOTAL_WORDS}, got ${allWordsWithColors.length}`,
+      `❌ Not enough words! Need ${GAME_CONSTANTS.TOTAL_WORDS}, got ${allWords.length}`,
     );
-    throw new Error("Not enough words to generate board");
-  }
 
-  // حذف کلمات تکراری (در صورت وجود)
-  const uniqueWords = new Map();
-  for (const word of allWordsWithColors) {
-    if (!uniqueWords.has(word.word)) {
-      uniqueWords.set(word.word, word);
-    }
-  }
-
-  let words = Array.from(uniqueWords.values());
-
-  // اگر بعد از حذف تکراری‌ها تعداد کلمات کم شد، از کلمات جایگزین استفاده کن
-  if (words.length < GAME_CONSTANTS.TOTAL_WORDS) {
-    console.warn(
-      `⚠️ After removing duplicates, only ${words.length} unique words left`,
-    );
-    // کلمات پیش‌فرض زیبا (نه "کلمه اضافی"!)
     const fallbackWords = [
-      { word: "آفتاب", color: "neutral" },
-      { word: "مهتاب", color: "neutral" },
-      { word: "ستاره", color: "neutral" },
-      { word: "کهکشان", color: "neutral" },
-      { word: "سیاره", color: "neutral" },
+      "آب",
+      "آتش",
+      "باد",
+      "زمین",
+      "آسمان",
+      "کوه",
+      "دریا",
+      "جنگل",
+      "صحرا",
+      "ستاره",
+      "ماه",
+      "خورشید",
+      "ابر",
+      "باران",
+      "برف",
+      "رعد",
+      "برق",
+      "طوفان",
+      "کتاب",
+      "قلم",
+      "مدرسه",
+      "دانشگاه",
+      "معلم",
+      "دانش‌آموز",
+      "ریاضی",
     ];
-    for (
-      let i = 0;
-      i < fallbackWords.length && words.length < GAME_CONSTANTS.TOTAL_WORDS;
-      i++
-    ) {
-      words.push(fallbackWords[i]);
-    }
+
+    return generateBoardFromWords(fallbackWords);
   }
 
+  const selectedWords = getRandomWords(GAME_CONSTANTS.TOTAL_WORDS);
+
+  return generateBoardFromWords(selectedWords);
+}
+
+// 🔥 تابع کمکی برای تولید صفحه از کلمات داده شده
+function generateBoardFromWords(words: string[]): GameWord[] {
   // تعیین تصادفی کدام تیم 9 کلمه دارد
   const teamWithNine = getRandomTeamWithNineWords();
   const redNeeded = teamWithNine === "red" ? 9 : 8;
   const blueNeeded = teamWithNine === "blue" ? 9 : 8;
 
-  // فیلتر کردن بر اساس رنگ‌ها
-  let redWords = words.filter((w) => w.color === "red").slice(0, redNeeded);
-  let blueWords = words.filter((w) => w.color === "blue").slice(0, blueNeeded);
-  let neutralWords = words
-    .filter((w) => w.color === "neutral")
-    .slice(0, GAME_CONSTANTS.NEUTRAL_WORDS_COUNT);
-  let assassinWords = words
-    .filter((w) => w.color === "assassin")
-    .slice(0, GAME_CONSTANTS.ASSASSIN_WORDS_COUNT);
-
-  // اگر تعداد کلمات یک رنگ کم بود، از بقیه رنگ‌ها جبران کن
-  while (redWords.length < redNeeded) {
-    redWords.push({ word: "الماس", color: "red" });
-  }
-  while (blueWords.length < blueNeeded) {
-    blueWords.push({ word: "یاقوت", color: "blue" });
-  }
-  while (neutralWords.length < GAME_CONSTANTS.NEUTRAL_WORDS_COUNT) {
-    neutralWords.push({ word: "طلایی", color: "neutral" });
-  }
-  while (assassinWords.length < GAME_CONSTANTS.ASSASSIN_WORDS_COUNT) {
-    assassinWords.push({ word: "زهر", color: "assassin" });
-  }
-
-  // ترکیب همه کلمات
-  let allWords = [...redWords, ...blueWords, ...neutralWords, ...assassinWords];
-
-  // شافل نهایی
-  allWords = shuffleArray(allWords);
-
   console.log(
-    `📊 Board stats: 🔴 Red: ${redWords.length}, 🔵 Blue: ${blueWords.length}, ⚪ Neutral: ${neutralWords.length}, 💀 Assassin: ${assassinWords.length}`,
+    `🎲 Randomly selected: ${teamWithNine === "red" ? "🔴 Red" : "🔵 Blue"} team has 9 words`,
   );
 
-  return allWords.map((w) => ({
-    word: w.word,
-    color: w.color as "red" | "blue" | "neutral" | "assassin",
-    isRevealed: false,
-  }));
+  // ساخت آرایه رنگ‌ها
+  const colors: ("red" | "blue" | "neutral" | "assassin")[] = [
+    ...Array(redNeeded).fill("red"),
+    ...Array(blueNeeded).fill("blue"),
+    ...Array(GAME_CONSTANTS.NEUTRAL_WORDS_COUNT).fill("neutral"),
+    ...Array(GAME_CONSTANTS.ASSASSIN_WORDS_COUNT).fill("assassin"),
+  ];
+
+  // شافل کردن رنگ‌ها
+  const shuffledColors = shuffleArray(colors);
+
+  // شافل کردن کلمات
+  const shuffledWords = shuffleArray([...words]);
+
+  // ساخت صفحه بازی
+  const board: GameWord[] = [];
+  for (let i = 0; i < GAME_CONSTANTS.TOTAL_WORDS; i++) {
+    board.push({
+      word: shuffledWords[i],
+      color: shuffledColors[i],
+      isRevealed: false,
+    });
+  }
+
+  // آمار برای دیباگ
+  const redCount = board.filter((w) => w.color === "red").length;
+  const blueCount = board.filter((w) => w.color === "blue").length;
+  const neutralCount = board.filter((w) => w.color === "neutral").length;
+  const assassinCount = board.filter((w) => w.color === "assassin").length;
+
+  console.log(
+    `📊 Board stats: 🔴 Red: ${redCount}, 🔵 Blue: ${blueCount}, ⚪ Neutral: ${neutralCount}, 💀 Assassin: ${assassinCount}`,
+  );
+
+  return board;
 }
